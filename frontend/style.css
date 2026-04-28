@@ -1,0 +1,209 @@
+:root {
+  --color-primary: #3E2723; /* Dark Brown */
+  --color-accent: #F4C9D6; /* Light Pink */
+  --color-bg: #FAFAFA;
+  --color-text: #333333;
+  --font-family: 'Inter', sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* Navbar */
+.navbar {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.navbar__brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.navbar__links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.navbar__link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.navbar__link:hover {
+  color: var(--color-accent);
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  padding: 3rem 1rem;
+  background-color: var(--color-accent);
+  border-radius: 12px;
+  color: var(--color-primary);
+  margin-bottom: 2rem;
+}
+
+.hero__title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+/* CSS Grid layout for forms/search */
+.grid-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+@media (min-width: 768px) {
+  .grid-layout {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+/* Form Styles */
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: var(--font-family);
+  box-sizing: border-box;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.1s;
+}
+
+.btn:hover {
+  background-color: #5D4037;
+  transform: translateY(-2px);
+}
+
+.btn--accent {
+  background-color: var(--color-accent);
+  color: var(--color-primary);
+}
+.btn--accent:hover {
+  background-color: #E1BEE7;
+}
+
+/* Results Grid */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.item-card {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  border-color: var(--color-accent);
+}
+
+.item-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.item-card__title {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+
+.item-card__badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.item-card__badge--lost {
+  background-color: #FFE0E0;
+  color: #D32F2F;
+}
+
+.item-card__badge--found {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+}
+
+.item-card__desc {
+  flex-grow: 1;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.item-card__meta {
+  font-size: 0.85rem;
+  color: #888;
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+}
