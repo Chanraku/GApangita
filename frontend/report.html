@@ -36,18 +36,39 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="categoryId">Category ID</label>
-                        <input type="number" id="categoryId" class="form-input" placeholder="e.g. 1 (Electronics)" required>
+                        <label class="form-label" for="categoryId">Category</label>
+                        <select id="categoryId" class="form-select" required>
+                            <option value="" disabled selected>Select a category...</option>
+                            <option value="1">Electronics (Smartphones, Laptops, Tablets, etc.)</option>
+                            <option value="2">Wallets & IDs (Purses, Credit Cards, etc.)</option>
+                            <option value="3">Keys (House, Car, Keychains)</option>
+                            <option value="4">Bags & Luggage (Backpacks, Handbags, etc.)</option>
+                            <option value="5">Eyewear (Sunglasses, Prescription Glasses)</option>
+                            <option value="6">Jewelry & Watches (Rings, Necklaces, etc.)</option>
+                            <option value="7">Clothing (Jackets, Sweaters, Hats, etc.)</option>
+                            <option value="8">Books & Stationery (Textbooks, Notebooks, etc.)</option>
+                            <option value="9">Documents (Folders, Certificates, Files)</option>
+                            <option value="10">Sports & Outdoors (Water Bottles, Gym Bags, etc.)</option>
+                            <option value="11">Miscellaneous (Health & Beauty, Tools, Other)</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="locationId">Location ID</label>
-                        <input type="number" id="locationId" class="form-input" placeholder="e.g. 1 (Library)" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="reporterId">Your User ID</label>
-                        <input type="number" id="reporterId" class="form-input" required>
+                        <label class="form-label" for="locationId">Location (Optional)</label>
+                        <select id="locationId" class="form-select">
+                            <option value="" selected>None / Don't know</option>
+                            <option value="1">Academic Buildings (Lecture Halls, Classrooms)</option>
+                            <option value="2">Laboratories (Computer, Science, Engineering)</option>
+                            <option value="3">Libraries (Main Library, Study Rooms)</option>
+                            <option value="4">Student Centers (Lounge, Organization Offices)</option>
+                            <option value="5">Administrative Offices (Registrar, Finance)</option>
+                            <option value="6">Cafeterias & Food Courts (Main Canteen, Kiosks)</option>
+                            <option value="7">Sports & Athletics (Gymnasium, Open Courts)</option>
+                            <option value="8">Religious Spaces (Campus Chapel, Prayer Rooms)</option>
+                            <option value="9">Parking Areas (Student, Faculty, Drop-off)</option>
+                            <option value="10">Outdoor Areas (Gazebos, Courtyards, Main Gate)</option>
+                            <option value="11">Restrooms (Floor-specific, PWD Access)</option>
+                        </select>
                     </div>
 
                     <div class="form-group">

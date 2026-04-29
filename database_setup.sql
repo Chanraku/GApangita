@@ -1,3 +1,8 @@
+CREATE USER 'gapangita_user'@'localhost' IDENTIFIED BY 'Gapangita_Secure_123!';
+GRANT ALL PRIVILEGES ON gapangita_db.* TO 'gapangita_user'@'localhost';
+FLUSH PRIVILEGES;
+
+
 CREATE DATABASE IF NOT EXISTS gapangita_db;
 USE gapangita_db;
 
@@ -34,9 +39,33 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 -- Insert some default categories
-INSERT IGNORE INTO categories (name) VALUES 
-('Electronics'), ('Documents'), ('Clothing'), ('Accessories'), ('Other');
+INSERT IGNORE INTO categories (category_id, name) VALUES 
+(1, 'Electronics'),
+(2, 'Wallets & IDs'),
+(3, 'Keys'),
+(4, 'Bags & Luggage'),
+(5, 'Eyewear'),
+(6, 'Jewelry & Watches'),
+(7, 'Clothing'),
+(8, 'Books & Stationery'),
+(9, 'Documents'),
+(10, 'Sports & Outdoors'),
+(11, 'Miscellaneous');
 
 -- Insert some default locations
-INSERT IGNORE INTO locations (name) VALUES 
-('Library'), ('Cafeteria'), ('Main Gate'), ('Admin Building'), ('Other');
+INSERT IGNORE INTO locations (location_id, name) VALUES 
+(1, 'Academic Buildings'),
+(2, 'Laboratories'),
+(3, 'Libraries'),
+(4, 'Student Centers'),
+(5, 'Administrative Offices'),
+(6, 'Cafeterias & Food Courts'),
+(7, 'Sports & Athletics'),
+(8, 'Religious Spaces'),
+(9, 'Parking Areas'),
+(10, 'Outdoor Areas'),
+(11, 'Restrooms');
+
+-- Insert a default anonymous user
+INSERT IGNORE INTO users (user_id, username, email, contact_number) VALUES 
+(1, 'Anonymous', 'anonymous@gapangita.local', '0000000000');

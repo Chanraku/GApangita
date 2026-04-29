@@ -41,7 +41,7 @@ function displayResults(items) {
             <p class="item-card__desc">${escapeHtml(item.description || 'No description provided.')}</p>
             <div class="item-card__meta">
                 <span>Date: ${new Date(item.date_reported).toLocaleDateString()}</span>
-                <span title="Lower score means better match!">Match Score: ${item.relevance}</span>
+                <span title="Higher percentage means better match!">Match: ${Math.round(item.relevance)}%</span>
             </div>
         </div>
     `).join('');
@@ -60,8 +60,8 @@ if (reportForm) {
             name: document.getElementById('itemName').value,
             item_type: document.getElementById('itemType').value,
             category_id: parseInt(document.getElementById('categoryId').value),
-            location_id: parseInt(document.getElementById('locationId').value),
-            reporter_user_id: parseInt(document.getElementById('reporterId').value),
+            location_id: document.getElementById('locationId').value ? parseInt(document.getElementById('locationId').value) : null,
+            reporter_user_id: 1, // Automatically set reporter ID
             description: document.getElementById('itemDescription').value
         };
 
