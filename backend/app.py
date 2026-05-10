@@ -10,7 +10,7 @@ db_config = {
     'host': 'localhost',
     'user': 'gapangita_user',
     'password': 'Gapangita_Secure_123!',
-    'database': 'gapangita_db'
+    'database': 'gapangita_db_TEST'
 }
 
 def get_db_connection():
@@ -41,12 +41,11 @@ def report_item():
         cursor = conn.cursor()
         
         query = """
-            INSERT INTO items (name, description, item_type, category_id, location_id, reporter_user_id) 
-            VALUES (%s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             data.get('name'), data.get('description'), data.get('item_type'),
-            data.get('category_id'), data.get('location_id'), data.get('reporter_user_id')
+            data.get('category_id'), data.get('branch_id'), data.get('location_id'), data.get('reporter_user_id')
         )
         
         cursor.execute(query, values)

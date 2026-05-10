@@ -60,6 +60,7 @@ if (reportForm) {
             name: document.getElementById('itemName').value,
             item_type: document.getElementById('itemType').value,
             category_id: parseInt(document.getElementById('categoryId').value),
+            branch_id: document.getElementById('branchId').value ? parseInt(document.getElementById('branchId').value) : null,
             location_id: document.getElementById('locationId').value ? parseInt(document.getElementById('locationId').value) : null,
             reporter_user_id: 1, // Automatically set reporter ID
             description: document.getElementById('itemDescription').value
