@@ -8,7 +8,7 @@ USE gapangita_db;
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -20,15 +20,15 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS locations (
     location_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
+    NAME VARCHAR(255) NOT NULL,
+    DESCRIPTION TEXT,
     item_type ENUM('lost', 'found') NOT NULL,
-    status ENUM('open', 'resolved') DEFAULT 'open',
+    STATUS ENUM('open', 'resolved') DEFAULT 'open',
     category_id INT,
     location_id INT,
     reporter_user_id INT,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 -- Insert some default categories
-INSERT IGNORE INTO categories (category_id, name) VALUES 
+INSERT IGNORE INTO categories (category_id, NAME) VALUES 
 (1, 'Electronics'),
 (2, 'Wallets & IDs'),
 (3, 'Keys'),
@@ -53,7 +53,7 @@ INSERT IGNORE INTO categories (category_id, name) VALUES
 (11, 'Miscellaneous');
 
 -- Insert some default locations
-INSERT IGNORE INTO locations (location_id, name) VALUES 
+INSERT IGNORE INTO locations (location_id, NAME) VALUES 
 (1, 'Academic Buildings'),
 (2, 'Laboratories'),
 (3, 'Libraries'),
