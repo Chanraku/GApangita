@@ -68,7 +68,7 @@ def search_items():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM items WHERE status = 'open'")
+        cursor.execute("SELECT * FROM vw_openItems")
         items = cursor.fetchall()
         
         # Apply Levenshtein distance and convert to percentage similarity

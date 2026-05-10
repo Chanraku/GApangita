@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS branchLocations (
 
 CREATE TABLE IF NOT EXISTS items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
-    NAME VARCHAR(255) NOT NULL,
+    NAME AS `name` VARCHAR(255) NOT NULL,
     DESCRIPTION TEXT,
     item_type ENUM('lost', 'found') NOT NULL,
     STATUS ENUM('open', 'resolved') DEFAULT 'open',
@@ -115,7 +115,26 @@ INSERT IGNORE INTO branchLocations (branchLocation_id, branch_id, location_id) V
 INSERT IGNORE INTO users (user_id, username, email, contact_number) VALUES 
 (1, 'Anonymous', 'anonymous@gapangita.local', '0000000000');
 
--- Create Stored Procedure
+-- Create Views
+DROP VIEW IF EXISTS vw_openItems;
+
+CREATE VIEW vw_openItems AS
+SELECT
+	item_id,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
+	item_type,
+	STATUS AS `status`,
+	category_id,
+	branch_id,
+	location_id,
+	reporter_user_id,
+	file_path,
+	date_reported
+FROM items
+WHERE STATUS = 'open';
+
+-- Create Stored Procedures
 DROP PROCEDURE IF EXISTS sp_submit_report;
 
 DELIMITER $$
