@@ -8,7 +8,7 @@ USE gapangita_db_TEST;
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -20,12 +20,12 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS branches (
     branch_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS locations (
     location_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS branchLocations (
@@ -38,10 +38,10 @@ CREATE TABLE IF NOT EXISTS branchLocations (
 
 CREATE TABLE IF NOT EXISTS items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
+    NAME VARCHAR(255) NOT NULL,
+    DESCRIPTION TEXT,
     item_type ENUM('lost', 'found') NOT NULL,
-    status ENUM('open', 'resolved') DEFAULT 'open',
+    STATUS ENUM('open', 'resolved') DEFAULT 'open',
     category_id INT,
     branch_id INT,
     location_id INT,
@@ -116,15 +116,15 @@ INSERT IGNORE INTO users (user_id, username, email, contact_number) VALUES
 (1, 'Anonymous', 'anonymous@gapangita.local', '0000000000');
 
 -- Create Views
-DROP VIEW IF EXISTS vw_openItems;
 
+DROP VIEW IF EXISTS vw_openItems;
 CREATE VIEW vw_openItems AS
 SELECT
 	item_id,
-	name AS `name`,
-	description AS `description`,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
 	item_type,
-	status AS `status`,
+	STATUS AS `status`,
 	category_id,
 	branch_id,
 	location_id,
@@ -132,12 +132,13 @@ SELECT
 	file_path,
 	date_reported
 FROM items
-WHERE status = 'open';
+WHERE STATUS = 'open';
 
 -- Create Stored Procedures
 DROP PROCEDURE IF EXISTS sp_submit_report;
 
 DELIMITER $$
+
 CREATE PROCEDURE sp_submit_report(
     IN p_name VARCHAR(255),
     IN p_description TEXT,
@@ -148,7 +149,8 @@ CREATE PROCEDURE sp_submit_report(
     IN p_reporter_user_id INT
 )
 BEGIN
-    INSERT INTO items (name, description, item_type, category_id, branch_id, location_id, reporter_user_id)
+    INSERT INTO items (NAME, DESCRIPTION, item_type, category_id, branch_id, location_id, reporter_user_id)
     VALUES (p_name, p_description, p_item_type, p_category_id, p_branch_id, p_location_id, p_reporter_user_id);
 END$$
+
 DELIMITER ;
