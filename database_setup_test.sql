@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_code VARCHAR(15) UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL DEFAULT 'password123',
     contact_number VARCHAR(20)
 );
 
@@ -360,3 +361,9 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 -- Insert a default anonymous user
 INSERT IGNORE INTO users (username, email, contact_number) VALUES
 ('Anonymous', 'anonymous@gapangita.local', '0000000000');
+
+USE gapangita_db_TEST;
+-- Add password column
+ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT 'password123';
+-- Update the default user password
+UPDATE users SET password = 'password123' WHERE username = 'Anonymous';
