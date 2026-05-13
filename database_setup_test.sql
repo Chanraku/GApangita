@@ -294,6 +294,11 @@ END$$
 DELIMITER ;
 
 
+/* ===========================================================================================================================================================================
+   IMPORTANT: CREATE ALL TRIGGERS FROM THE FILE "database_log_triggers.test" BEFORE CONTINUING ===============================================================================
+   =========================================================================================================================================================================== */
+
+
 -- Insert Into Statements
 -- Insert some default categories
 INSERT IGNORE INTO categories (NAME) VALUES
@@ -355,4 +360,3 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 -- Insert a default anonymous user
 INSERT IGNORE INTO users (username, email, contact_number) VALUES
 ('Anonymous', 'anonymous@gapangita.local', '0000000000');
-
