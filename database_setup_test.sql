@@ -8,11 +8,13 @@ USE gapangita_db_TEST;
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_code VARCHAR(15) UNIQUE,
     NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_code VARCHAR(15) UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     contact_number VARCHAR(20)
@@ -20,121 +22,98 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS branches (
     branch_id INT AUTO_INCREMENT PRIMARY KEY,
+    branch_code VARCHAR(15) UNIQUE,
     NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS locations (
     location_id INT AUTO_INCREMENT PRIMARY KEY,
+    location_code VARCHAR(15) UNIQUE,
     NAME VARCHAR(100) NOT NULL UNIQUE
 );
 
+DROP TABLE IF EXISTS branchLocations;
 CREATE TABLE IF NOT EXISTS branchLocations (
     branchLocation_id INT AUTO_INCREMENT PRIMARY KEY,
-    branch_id INT,
-    location_id INT,
-    FOREIGN KEY (branch_id) REFERENCES branches(branch_id) ON DELETE SET NULL,
-    FOREIGN KEY (location_id) REFERENCES locations(location_id) ON DELETE SET NULL
+    branchLocation_code VARCHAR(15) UNIQUE,
+    branch_code VARCHAR(15),
+    location_code VARCHAR(15),
+    FOREIGN KEY (branch_code) REFERENCES branches(branch_code),
+    FOREIGN KEY (location_code) REFERENCES locations(location_code)
 );
 
 CREATE TABLE IF NOT EXISTS items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_code VARCHAR(15) UNIQUE,
     NAME VARCHAR(255) NOT NULL,
     DESCRIPTION TEXT,
     item_type ENUM('lost', 'found') NOT NULL,
     STATUS ENUM('open', 'resolved') DEFAULT 'open',
-    category_id INT,
-    branch_id INT,
-    location_id INT,
-    reporter_user_id INT,
+    category_code VARCHAR(15),
+    branch_code VARCHAR(15),
+    location_code VARCHAR(15),
+    reporter_user_code VARCHAR(15),
     file_path VARCHAR(255),
     date_reported DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
-    FOREIGN KEY (branch_id) REFERENCES branches(branch_id) ON DELETE SET NULL,
-    FOREIGN KEY (location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
-    FOREIGN KEY (reporter_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (category_code) REFERENCES categories(category_code) ON DELETE SET NULL,
+    FOREIGN KEY (branch_code) REFERENCES branches(branch_code) ON DELETE SET NULL,
+    FOREIGN KEY (location_code) REFERENCES locations(location_code) ON DELETE SET NULL,
+    FOREIGN KEY (reporter_user_code) REFERENCES users(user_code) ON DELETE CASCADE
 );
 
--- Insert some default categories
-INSERT IGNORE INTO categories (category_id, NAME) VALUES
-(1, 'Electronics'),
-(2, 'Wallets & IDs'),
-(3, 'Keys'),
-(4, 'Bags & Luggage'),
-(5, 'Eyewear'),
-(6, 'Jewelry & Watches'),
-(7, 'Clothing'),
-(8, 'Books & Stationery'),
-(9, 'Documents'),
-(10, 'Sports & Outdoors'),
-(11, 'Miscellaneous');
+CREATE TABLE ID_Counters (
+    TABLE_NAME VARCHAR(50) PRIMARY KEY,
+    prefix VARCHAR(10) NOT NULL,
+    last_number INT NOT NULL DEFAULT 0
+);
 
--- Insert some default branches
-INSERT IGNORE INTO branches (branch_id, NAME) VALUES
-(1, 'UM Tagum Main'),
-(2, 'UM Tagum Visayan');
+INSERT INTO ID_Counters (TABLE_NAME, prefix, last_number) VALUES
+('logs', 'LOG', 0),
+('users', 'USR', 0),
+('branches', 'BRH', 0),
+('branchlocations', 'BRL', 0),
+('categories', 'CAT', 0),
+('items', 'ITM', 0),
+('locations', 'LOC', 0);
 
--- Insert some default locations
-INSERT IGNORE INTO locations (location_id, NAME) VALUES
-(1, 'Academic Buildings'),
-(2, 'Laboratories'),
-(3, 'Libraries'),
-(4, 'Student Centers'),
-(5, 'Administrative Offices'),
-(6, 'Cafeterias & Food Courts'),
-(7, 'Sports & Athletics'),
-(8, 'Religious Spaces'),
-(9, 'Parking Areas'),
-(10, 'Outdoor Areas'),
-(11, 'Restrooms');
+CREATE TABLE LOGS (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    log_code VARCHAR(15) UNIQUE,
+    user_code VARCHAR(15),
+    action_doer VARCHAR(30) NOT NULL,
+    affected_record_id VARCHAR(15),
+    action_name VARCHAR(50) NOT NULL,
+    action_details TEXT,
+    action_datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_code) REFERENCES users(user_code)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
 
--- Insert some default branchLocations
-INSERT IGNORE INTO branchLocations (branchLocation_id, branch_id, location_id) VALUES
-(1, 1, 1),
-(2, 1, 2),
-(3, 1, 3),
-(4, 1, 4),
-(5, 1, 5),
-(6, 1, 6),
-(7, 1, 7),
-(8, 1, 8),
-(9, 1, 9),
-(10, 1, 10),
-(11, 1, 11),
-
-(12, 2, 1),
-(13, 2, 2),
-(14, 2, 3),
-(15, 2, 4),
-(16, 2, 6),
-(17, 2, 7),
-(18, 2, 9),
-(19, 2, 10),
-(20, 2, 11);
-
--- Insert a default anonymous user
-INSERT IGNORE INTO users (user_id, username, email, contact_number) VALUES
-(1, 'Anonymous', 'anonymous@gapangita.local', '0000000000');
 
 -- Create Views
-
+-- 1
 DROP VIEW IF EXISTS vw_openItems;
 CREATE VIEW vw_openItems AS
 SELECT
 	item_id,
+	item_code,
 	NAME AS `name`,
 	DESCRIPTION AS `description`,
 	item_type,
 	STATUS AS `status`,
-	category_id,
-	branch_id,
-	location_id,
-	reporter_user_id,
+	category_code,
+	branch_code,
+	location_code,
+	reporter_user_code,
 	file_path,
 	date_reported
 FROM items
 WHERE STATUS = 'open';
 
+
 -- Create Stored Procedures
+-- 1
 DROP PROCEDURE IF EXISTS sp_submit_report;
 
 DELIMITER $$
@@ -143,14 +122,237 @@ CREATE PROCEDURE sp_submit_report(
     IN p_name VARCHAR(255),
     IN p_description TEXT,
     IN p_item_type ENUM('lost', 'found'),
-    IN p_category_id INT,
-    IN p_branch_id INT,
-    IN p_location_id INT,
-    IN p_reporter_user_id INT
+    IN p_category_code VARCHAR(15),
+    IN p_branch_code VARCHAR(15),
+    IN p_location_code VARCHAR(15),
+    IN p_reporter_user_code VARCHAR(15)
 )
 BEGIN
-    INSERT INTO items (NAME, DESCRIPTION, item_type, category_id, branch_id, location_id, reporter_user_id)
-    VALUES (p_name, p_description, p_item_type, p_category_id, p_branch_id, p_location_id, p_reporter_user_id);
+    INSERT INTO items (NAME, DESCRIPTION, item_type, category_code, branch_code, location_code, reporter_user_code)
+    VALUES (p_name, p_description, p_item_type, p_category_code, p_branch_code, p_location_code, p_reporter_user_code);
 END$$
 
 DELIMITER ;
+
+-- 2
+
+
+-- Create Functions
+-- 1
+DROP FUNCTION IF EXISTS fn_generate_id;
+
+DELIMITER $$
+
+CREATE FUNCTION fn_generate_id(
+    p_table_name VARCHAR(50)
+)
+RETURNS VARCHAR(20)
+DETERMINISTIC
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_prefix VARCHAR(10);
+    DECLARE v_last_number INT;
+    DECLARE v_new_id VARCHAR(20);
+
+    -- Get current counter
+    SELECT prefix, last_number
+    INTO v_prefix, v_last_number
+    FROM ID_Counters
+    WHERE TABLE_NAME = LOWER(p_table_name);
+
+    -- Increment counter
+    SET v_last_number = v_last_number + 1;
+
+    -- Update counter table
+    UPDATE ID_Counters
+    SET last_number = v_last_number
+    WHERE TABLE_NAME = LOWER(p_table_name);
+
+    -- Build formatted ID
+    SET v_new_id = CONCAT(
+        v_prefix,
+        LPAD(v_last_number, 4, '0')
+    );
+
+    RETURN v_new_id;
+END$$
+
+DELIMITER ;
+
+
+-- Create Triggers
+-- 1
+DROP TRIGGER IF EXISTS trg_users_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_users_auto_id
+BEFORE INSERT ON users
+FOR EACH ROW
+BEGIN
+    IF NEW.user_code IS NULL THEN
+        SET NEW.user_code = fn_generate_id('users');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 2
+DROP TRIGGER IF EXISTS trg_branches_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_branches_auto_id
+BEFORE INSERT ON branches
+FOR EACH ROW
+BEGIN
+    IF NEW.branch_code IS NULL THEN
+        SET NEW.branch_code = fn_generate_id('branches');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 3
+DROP TRIGGER IF EXISTS trg_branchLocations_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_branchLocations_auto_id
+BEFORE INSERT ON branchLocations
+FOR EACH ROW
+BEGIN
+    IF NEW.branchLocation_code IS NULL THEN
+        SET NEW.branchLocation_code = fn_generate_id('branchlocations');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 4
+DROP TRIGGER IF EXISTS trg_categories_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_categories_auto_id
+BEFORE INSERT ON categories
+FOR EACH ROW
+BEGIN
+    IF NEW.category_code IS NULL THEN
+        SET NEW.category_code = fn_generate_id('categories');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 5
+DROP TRIGGER IF EXISTS trg_items_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_items_auto_id
+BEFORE INSERT ON items
+FOR EACH ROW
+BEGIN
+    IF NEW.item_code IS NULL THEN
+        SET NEW.item_code = fn_generate_id('items');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 6
+DROP TRIGGER IF EXISTS trg_locations_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_locations_auto_id
+BEFORE INSERT ON locations
+FOR EACH ROW
+BEGIN
+    IF NEW.location_code IS NULL THEN
+        SET NEW.location_code = fn_generate_id('locations');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 7
+DROP TRIGGER IF EXISTS trg_logs_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_logs_auto_id
+BEFORE INSERT ON LOGS
+FOR EACH ROW
+BEGIN
+    IF NEW.log_code IS NULL THEN
+        SET NEW.log_code = fn_generate_id('logs');
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+-- Insert Into Statements
+-- Insert some default categories
+INSERT IGNORE INTO categories (NAME) VALUES
+('Electronics'),
+('Wallets & IDs'),
+('Keys'),
+('Bags & Luggage'),
+('Eyewear'),
+('Jewelry & Watches'),
+('Clothing'),
+('Books & Stationery'),
+('Documents'),
+('Sports & Outdoors'),
+('Miscellaneous');
+
+-- Insert some default branches
+INSERT IGNORE INTO branches (NAME) VALUES
+('UM Tagum Main'),
+('UM Tagum Visayan');
+
+-- Insert some default locations
+INSERT IGNORE INTO locations (NAME) VALUES
+('Academic Buildings'),
+('Laboratories'),
+('Libraries'),
+('Student Centers'),
+('Administrative Offices'),
+('Cafeterias & Food Courts'),
+('Sports & Athletics'),
+('Religious Spaces'),
+('Parking Areas'),
+('Outdoor Areas'),
+('Restrooms');
+
+-- Insert some default branchLocations
+INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
+('BRH0001', 'LOC0001'),
+('BRH0001', 'LOC0002'),
+('BRH0001', 'LOC0003'),
+('BRH0001', 'LOC0004'),
+('BRH0001', 'LOC0005'),
+('BRH0001', 'LOC0006'),
+('BRH0001', 'LOC0007'),
+('BRH0001', 'LOC0008'),
+('BRH0001', 'LOC0009'),
+('BRH0001', 'LOC0010'),
+('BRH0001', 'LOC0011'),
+
+('BRH0002', 'LOC0001'),
+('BRH0002', 'LOC0002'),
+('BRH0002', 'LOC0003'),
+('BRH0002', 'LOC0004'),
+('BRH0002', 'LOC0006'),
+('BRH0002', 'LOC0007'),
+('BRH0002', 'LOC0009'),
+('BRH0002', 'LOC00010'),
+('BRH0002', 'LOC00011');
+
+-- Insert a default anonymous user
+INSERT IGNORE INTO users (username, email, contact_number) VALUES
+('Anonymous', 'anonymous@gapangita.local', '0000000000');
+

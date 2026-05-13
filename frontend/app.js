@@ -59,12 +59,13 @@ if (reportForm) {
         const payload = {
             name: document.getElementById('itemName').value,
             item_type: document.getElementById('itemType').value,
-            category_id: parseInt(document.getElementById('categoryId').value),
-            branch_id: document.getElementById('branchId').value ? parseInt(document.getElementById('branchId').value) : null,
-            location_id: document.getElementById('locationId').value ? parseInt(document.getElementById('locationId').value) : null,
-            reporter_user_id: 1, // Automatically set reporter ID
+            category_id: document.getElementById('categoryId').value,
+            branch_id: document.getElementById('branchId').value,
+            location_id: document.getElementById('locationId').value,
+            reporter_user_id: 'USR0001', // Automatically set reporter ID
             description: document.getElementById('itemDescription').value
         };
+        
 
         try {
             const response = await fetch(`${API_BASE_URL}/items`, {
