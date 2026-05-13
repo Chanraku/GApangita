@@ -95,8 +95,8 @@ CREATE TABLE LOGS (
 
 -- Create Views
 -- 1
-DROP VIEW IF EXISTS vw_openItems;
-CREATE VIEW vw_openItems AS
+DROP VIEW IF EXISTS vw_openAllItems;
+CREATE VIEW vw_openAllItems AS
 SELECT
 	item_id,
 	item_code,
@@ -112,6 +112,107 @@ SELECT
 	date_reported
 FROM items
 WHERE STATUS = 'open';
+-- SELECT * FROM vw_openAllItems;
+
+-- 2
+DROP VIEW IF EXISTS vw_openLostItems;
+CREATE VIEW vw_openLostItems AS
+SELECT
+	item_id,
+	item_code,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
+	item_type,
+	STATUS AS `status`,
+	category_code,
+	branch_code,
+	location_code,
+	reporter_user_code,
+	file_path,
+	date_reported
+FROM items
+WHERE STATUS = 'open' AND item_type = 'lost';
+-- SELECT * FROM vw_openLostItems;
+
+-- 3
+DROP VIEW IF EXISTS vw_openFoundItems;
+CREATE VIEW vw_openFoundItems AS
+SELECT
+	item_id,
+	item_code,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
+	item_type,
+	STATUS AS `status`,
+	category_code,
+	branch_code,
+	location_code,
+	reporter_user_code,
+	file_path,
+	date_reported
+FROM items
+WHERE STATUS = 'open' AND item_type = 'found';
+-- SELECT * FROM vw_openFoundItems;
+
+-- 4
+DROP VIEW IF EXISTS vw_closedAllItems;
+CREATE VIEW vw_closedAllItems AS
+SELECT
+	item_id,
+	item_code,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
+	item_type,
+	STATUS AS `status`,
+	category_code,
+	branch_code,
+	location_code,
+	reporter_user_code,
+	file_path,
+	date_reported
+FROM items
+WHERE STATUS = 'closed';
+-- SELECT * FROM vw_closedAllItems;
+
+-- 5
+DROP VIEW IF EXISTS vw_closedLostItems;
+CREATE VIEW vw_closedLostItems AS
+SELECT
+	item_id,
+	item_code,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
+	item_type,
+	STATUS AS `status`,
+	category_code,
+	branch_code,
+	location_code,
+	reporter_user_code,
+	file_path,
+	date_reported
+FROM items
+WHERE STATUS = 'closed' AND item_type = 'lost';
+-- SELECT * FROM vw_closedLostItems;
+
+-- 6
+DROP VIEW IF EXISTS vw_closedFoundItems;
+CREATE VIEW vw_closedFoundItems AS
+SELECT
+	item_id,
+	item_code,
+	NAME AS `name`,
+	DESCRIPTION AS `description`,
+	item_type,
+	STATUS AS `status`,
+	category_code,
+	branch_code,
+	location_code,
+	reporter_user_code,
+	file_path,
+	date_reported
+FROM items
+WHERE STATUS = 'closed' AND item_type = 'found';
+-- SELECT * FROM vw_closedFoundItems;
 
 
 -- Create Stored Procedures
