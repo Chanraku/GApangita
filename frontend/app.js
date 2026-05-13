@@ -1,5 +1,10 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+});
+
 // Search functionality
 const searchInput = document.getElementById('searchInput');
 const resultsContainer = document.getElementById('resultsContainer');
@@ -15,7 +20,7 @@ if (searchInput) {
 
         try {
             resultsContainer.innerHTML = '<p>Searching...</p>';
-            const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`, { credentials: 'include' });
             const items = await response.json();
             
             displayResults(items);
@@ -71,13 +76,18 @@ if (reportForm) {
             const response = await fetch(`${API_BASE_URL}/items`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                credentials: 'include'
             });
 
             if (response.ok) {
                 msgEl.textContent = 'Report submitted successfully!';
                 msgEl.style.color = 'green';
                 reportForm.reset();
+            } else if (response.status === 401) {
+                msgEl.textContent = 'Unauthorized. Redirecting to login...';
+                msgEl.style.color = 'orange';
+                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
             } else {
                 const err = await response.json();
                 msgEl.textContent = `Error: ${err.error || 'Failed to submit'}`;
@@ -111,4 +121,94 @@ function escapeHtml(unsafe) {
          .replace(/>/g, "&gt;")
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
+}
+
+// Authentication Logic
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth-status`, { credentials: 'include' });
+        const data = await response.json();
+        
+        const isAuth = data.is_authenticated;
+        const currentPage = window.location.pathname.split('/').pop();
+        
+        updateNavbar(isAuth, data.user);
+        
+        if (isAuth && (currentPage === 'login.html')) {
+            window.location.href = 'report.html';
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+    }
+}
+
+function updateNavbar(isAuth, user) {
+    const navLinks = document.querySelector('.navbar__links');
+    if (!navLinks) return;
+
+    if (isAuth) {
+        navLinks.innerHTML = `
+            <a href="index.html" class="navbar__link">Home</a>
+            <a href="report.html" class="navbar__link">Report Item</a>
+            <div class="navbar__user">
+                <span><i class="fa-solid fa-user-circle"></i> ${user.username}</span>
+                <a href="#" id="logoutBtn" class="navbar__link" style="margin-left: 15px;">Logout</a>
+            </div>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+    } else {
+        navLinks.innerHTML = `
+            <a href="index.html" class="navbar__link">Home</a>
+            <a href="report.html" class="navbar__link">Report Item</a>
+            <a href="login.html" class="navbar__link">
+                <i class="fa-solid fa-user-circle" style="margin-right: 8px;"></i> Login
+            </a>
+        `;
+    }
+}
+
+async function logout(e) {
+    e.preventDefault();
+    try {
+        await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error('Logout failed:', error);
+    }
+}
+
+// Login Form Handler
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('loginError');
+        errorEl.style.display = 'none';
+
+        const payload = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                window.location.href = 'report.html';
+            } else {
+                const err = await response.json();
+                errorEl.textContent = err.error || 'Login failed. Please try again.';
+                errorEl.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            errorEl.textContent = 'Failed to connect to the server.';
+            errorEl.style.display = 'block';
+        }
+    });
 }

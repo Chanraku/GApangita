@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 import mysql.connector
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+app.secret_key = 'super_secret_key_for_local_use' # Change this in production
+CORS(app, supports_credentials=True)
 
 # Database connection configuration
 db_config = {
@@ -35,6 +36,9 @@ def levenshtein_distance(s1, s2):
 
 @app.route('/api/items', methods=['POST'])
 def report_item():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
+    
     data = request.json
     try:
         conn = get_db_connection()
@@ -45,7 +49,8 @@ def report_item():
         """
         values = (
             data.get('name'), data.get('description'), data.get('item_type'),
-            data.get('category_id'), data.get('branch_id'), data.get('location_id'), data.get('reporter_user_id')
+            data.get('category_id'), data.get('branch_id'), data.get('location_id'), 
+            session.get('user_code') # Use logged in user's code
         )
         
         cursor.execute(query, values)
@@ -95,6 +100,56 @@ def search_items():
             cursor.close()
         if 'conn' in locals() and conn.is_connected():
             conn.close()
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        # In a real app, use hashed passwords!
+        query = "SELECT user_id, user_code, username FROM users WHERE username = %s AND password = %s"
+        cursor.execute(query, (username, password))
+        user = cursor.fetchone()
+
+        if user:
+            session['user_id'] = user['user_id']
+            session['user_code'] = user['user_code']
+            session['username'] = user['username']
+            return jsonify({'message': 'Logged in successfully', 'user': user}), 200
+        else:
+            return jsonify({'error': 'Invalid username or password'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({'message': 'Logged out successfully'}), 200
+
+@app.route('/api/auth-status', methods=['GET'])
+def auth_status():
+    if 'user_id' in session:
+        return jsonify({
+            'is_authenticated': True,
+            'user': {
+                'user_id': session['user_id'],
+                'user_code': session['user_code'],
+                'username': session['username']
+            }
+        }), 200
+    return jsonify({'is_authenticated': False}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

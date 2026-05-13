@@ -34,7 +34,27 @@ body {
 
 .navbar__links {
   display: flex;
+  align-items: center;
   gap: 1.5rem;
+}
+
+.navbar__user {
+  display: flex;
+  align-items: center;
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.navbar__user span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-accent);
+}
+
+.navbar__user i {
+  font-size: 1.2rem;
 }
 
 .navbar__link {
