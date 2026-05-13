@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS branchLocations (
 
 CREATE TABLE IF NOT EXISTS items (
     item_id INT AUTO_INCREMENT PRIMARY KEY,
-    NAME AS `name` VARCHAR(255) NOT NULL,
+    NAME VARCHAR(255) NOT NULL,
     DESCRIPTION TEXT,
     item_type ENUM('lost', 'found') NOT NULL,
     STATUS ENUM('open', 'resolved') DEFAULT 'open',
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS items (
 );
 
 -- Insert some default categories
-INSERT IGNORE INTO categories (category_id, NAME) VALUES 
+INSERT IGNORE INTO categories (category_id, NAME) VALUES
 (1, 'Electronics'),
 (2, 'Wallets & IDs'),
 (3, 'Keys'),
@@ -69,12 +69,12 @@ INSERT IGNORE INTO categories (category_id, NAME) VALUES
 (11, 'Miscellaneous');
 
 -- Insert some default branches
-INSERT IGNORE INTO branches (branch_id, NAME) VALUES 
+INSERT IGNORE INTO branches (branch_id, NAME) VALUES
 (1, 'UM Tagum Main'),
 (2, 'UM Tagum Visayan');
 
 -- Insert some default locations
-INSERT IGNORE INTO locations (location_id, NAME) VALUES 
+INSERT IGNORE INTO locations (location_id, NAME) VALUES
 (1, 'Academic Buildings'),
 (2, 'Laboratories'),
 (3, 'Libraries'),
@@ -88,7 +88,7 @@ INSERT IGNORE INTO locations (location_id, NAME) VALUES
 (11, 'Restrooms');
 
 -- Insert some default branchLocations
-INSERT IGNORE INTO branchLocations (branchLocation_id, branch_id, location_id) VALUES 
+INSERT IGNORE INTO branchLocations (branchLocation_id, branch_id, location_id) VALUES
 (1, 1, 1),
 (2, 1, 2),
 (3, 1, 3),
@@ -112,12 +112,12 @@ INSERT IGNORE INTO branchLocations (branchLocation_id, branch_id, location_id) V
 (20, 2, 11);
 
 -- Insert a default anonymous user
-INSERT IGNORE INTO users (user_id, username, email, contact_number) VALUES 
+INSERT IGNORE INTO users (user_id, username, email, contact_number) VALUES
 (1, 'Anonymous', 'anonymous@gapangita.local', '0000000000');
 
 -- Create Views
-DROP VIEW IF EXISTS vw_openItems;
 
+DROP VIEW IF EXISTS vw_openItems;
 CREATE VIEW vw_openItems AS
 SELECT
 	item_id,
@@ -148,7 +148,7 @@ CREATE PROCEDURE sp_submit_report(
     IN p_location_id INT,
     IN p_reporter_user_id INT
 )
-BEGIN    
+BEGIN
     INSERT INTO items (NAME, DESCRIPTION, item_type, category_id, branch_id, location_id, reporter_user_id)
     VALUES (p_name, p_description, p_item_type, p_category_id, p_branch_id, p_location_id, p_reporter_user_id);
 END$$
