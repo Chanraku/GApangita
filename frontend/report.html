@@ -70,8 +70,8 @@
 
                     <div class="form-group">
                         <label class="form-label" for="locationId">Location (Optional)</label>
-                        <select id="locationId" class="form-select">
-                            <option value="" selected>None / Don't know</option>
+                        <select id="locationId" class="form-select" required>
+                            <option value="" disabled selected> Select a location... </option>
                             <option value="1">Academic Buildings (Lecture Halls, Classrooms)</option>
                             <option value="2">Laboratories (Computer, Science, Engineering)</option>
                             <option value="3">Libraries (Main Library, Study Rooms)</option>
@@ -88,7 +88,7 @@
 
                     <div class="form-group">
                         <label class="form-label" for="itemDescription">Description</label>
-                        <textarea id="itemDescription" class="form-textarea" rows="4" placeholder="Provide distinct features..."></textarea>
+                        <textarea id="itemDescription" class="form-textarea" rows="4" placeholder="Provide distinct features..." required></textarea>
                     </div>
 
                     <button type="submit" class="btn">Submit Report</button>
