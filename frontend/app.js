@@ -1,5 +1,6 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 let isFormDirty = false;
+let isNavigating = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -224,6 +225,8 @@ function togglePassword() {
   }
 }
 // Modal System Logic
+let isHandlingModalNavigation = false;
+
 function showModal(title, message, type = 'alert', onConfirm = null) {
     const modal = document.getElementById('customModal');
     if (!modal) return;
@@ -286,28 +289,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // LOGIC 1: DEFAULT BROWSER POPUP (only for browser exit/refresh)
     window.addEventListener('beforeunload', (e) => {
+        // Skip if we're handling navigation via custom modal
+        if (isHandlingModalNavigation) {
+            isHandlingModalNavigation = false; // Reset for next time
+            return;
+        }
+        
         if (isFormDirty) {
             e.preventDefault();
-            e.returnValue = ''; // Required for some browsers to show the default prompt
+            e.returnValue = '';
         }
     });
-
+    
+    // LOGIC 2: CUSTOM MODAL (only for internal link navigation)
     document.body.addEventListener('click', (e) => {
         const link = e.target.closest('a');
-        if (link) {
-            const href = link.getAttribute('href');
-            if (isFormDirty && href && !href.startsWith('#') && href !== 'javascript:void(0);') {
-                e.preventDefault(); // Stop immediate navigation
-                showModal(
-                    'Unsaved Changes', 
-                    'Are you sure you want to leave this page with unsaved changes?', 
-                    'confirm', 
-                    () => {
-                        window.location.href = href; // Navigate if confirmed
-                    }
-                );
-            }
+        if (!link) return;
+
+        // ignore special browser/system actions
+        if (link.target === '_blank') return;
+
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#')) return;
+
+        // Show CUSTOM MODAL if there are unsaved changes
+        if (isFormDirty) {
+            e.preventDefault();
+
+            showModal(
+                'Unsaved Changes',
+                'You have unsaved changes. Leave page?',
+                'confirm',
+                () => {
+                    // Set flag to prevent beforeunload default popup from showing
+                    isHandlingModalNavigation = true;
+                    isFormDirty = false;
+                    window.location.href = href;
+                }
+            );
         }
     });
 });
