@@ -912,5 +912,6 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 ('BRH0002', 'LOC0011');
 
 -- Insert a default anonymous user
-INSERT IGNORE INTO users (username, email, contact_number) VALUES
-('Anonymous', 'anonymous@gapangita.local', '0000000000');
+INSERT IGNORE INTO users (username, email, PASSWORD, contact_number) VALUES
+('Anonymous', 'anonymous@gapangita.local', 'password123', '0000000000'),
+('Admin123', 'admin@gapangita.local', 'Admin123', '0000000001');
