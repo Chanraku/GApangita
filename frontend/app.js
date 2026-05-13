@@ -1,4 +1,5 @@
 const API_BASE_URL = 'http://localhost:5000/api';
+let isFormDirty = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -57,10 +58,6 @@ const reportForm = document.getElementById('reportForm');
 if (reportForm) {
     reportForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const msgEl = document.getElementById('reportMessage');
-        msgEl.textContent = 'Submitting...';
-        msgEl.style.color = 'black';
-
         const payload = {
             name: document.getElementById('itemName').value,
             item_type: document.getElementById('itemType').value,
@@ -81,22 +78,20 @@ if (reportForm) {
             });
 
             if (response.ok) {
-                msgEl.textContent = 'Report submitted successfully!';
-                msgEl.style.color = 'green';
+                showModal('Success!', 'Report submitted successfully!');
                 reportForm.reset();
+                isFormDirty = false;
             } else if (response.status === 401) {
-                msgEl.textContent = 'Unauthorized. Redirecting to login...';
-                msgEl.style.color = 'orange';
-                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+                showModal('Unauthorized', 'You must log in to submit a report. Redirecting...', 'alert', () => {
+                    window.location.href = 'login.html';
+                });
             } else {
                 const err = await response.json();
-                msgEl.textContent = `Error: ${err.error || 'Failed to submit'}`;
-                msgEl.style.color = 'red';
+                showModal('Error', `Failed to submit: ${err.error || 'Failed to submit'}`);
             }
         } catch (error) {
             console.error('Submit error:', error);
-            msgEl.textContent = 'Failed to connect to the server.';
-            msgEl.style.color = 'red';
+            showModal('Connection Error', 'Failed to connect to the server.');
         }
     });
 }
@@ -134,6 +129,10 @@ async function checkAuth() {
         
         updateNavbar(isAuth, data.user);
         
+        if (!isAuth && (currentPage === 'report.html')) {
+            window.location.href = 'login.html';
+        }
+        
         if (isAuth && (currentPage === 'login.html')) {
             window.location.href = 'report.html';
         }
@@ -159,7 +158,6 @@ function updateNavbar(isAuth, user) {
     } else {
         navLinks.innerHTML = `
             <a href="index.html" class="navbar__link">Home</a>
-            <a href="report.html" class="navbar__link">Report Item</a>
             <a href="login.html" class="navbar__link">
                 <i class="fa-solid fa-user-circle" style="margin-right: 8px;"></i> Login
             </a>
@@ -225,3 +223,92 @@ function togglePassword() {
     icon.classList.replace("fa-eye-slash", "fa-eye");
   }
 }
+// Modal System Logic
+function showModal(title, message, type = 'alert', onConfirm = null) {
+    const modal = document.getElementById('customModal');
+    if (!modal) return;
+
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMessage').textContent = message;
+    
+    const footer = document.getElementById('modalFooter');
+    footer.innerHTML = ''; // Clear previous buttons
+
+    if (type === 'confirm') {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-cancel';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.onclick = () => {
+            modal.style.display = 'none';
+        };
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'btn-confirm';
+        confirmBtn.textContent = 'Yes, Proceed';
+        confirmBtn.onclick = () => {
+            modal.style.display = 'none';
+            if (onConfirm) onConfirm();
+        };
+
+        footer.appendChild(cancelBtn);
+        footer.appendChild(confirmBtn);
+    } else {
+        const okBtn = document.createElement('button');
+        okBtn.className = 'btn-confirm';
+        okBtn.textContent = 'OK';
+        okBtn.onclick = () => {
+            modal.style.display = 'none';
+            if (onConfirm) onConfirm(); // onClose action
+        };
+        footer.appendChild(okBtn);
+    }
+
+    modal.style.display = 'flex';
+}
+
+// Unsaved Changes Tracker
+document.addEventListener('DOMContentLoaded', () => {
+    // Listen for changes on ALL inputs, textareas, and selects globally
+    const trackableElements = document.querySelectorAll('input, textarea, select');
+    trackableElements.forEach(el => {
+        el.addEventListener('input', () => {
+            isFormDirty = true;
+        });
+    });
+
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', () => {
+            setTimeout(() => { isFormDirty = false; }, 50);
+        });
+        form.addEventListener('reset', () => {
+             isFormDirty = false;
+        });
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (isFormDirty) {
+            e.preventDefault();
+            e.returnValue = ''; // Required for some browsers to show the default prompt
+        }
+    });
+
+    document.body.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link) {
+            const href = link.getAttribute('href');
+            if (isFormDirty && href && !href.startsWith('#') && href !== 'javascript:void(0);') {
+                e.preventDefault(); // Stop immediate navigation
+                showModal(
+                    'Unsaved Changes', 
+                    'Are you sure you want to leave this page with unsaved changes?', 
+                    'confirm', 
+                    () => {
+                        window.location.href = href; // Navigate if confirmed
+                    }
+                );
+            }
+        }
+    });
+});
+

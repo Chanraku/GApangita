@@ -50,7 +50,7 @@
             
             <div class="form-group">
                 <h3>Description Details</h3>
-                <input type="text" id="searchInput" class="form-input" placeholder="Describe more details(color, brand location last seen, distinguishing marks)...">
+                <input type="text" id="searchDescInput" class="form-input" placeholder="Describe more details(color, brand location last seen, distinguishing marks)...">
             </div>
 
             <div class="filters-dropdown">
@@ -112,6 +112,21 @@
                 <p>Start typing to search...</p>
             </div>
         </section>
+    </div>
+
+    <!-- Custom Modal System -->
+    <div id="customModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modalTitle">Notice</h3>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage"></p>
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <!-- Buttons will be injected here -->
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
