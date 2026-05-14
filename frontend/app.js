@@ -200,34 +200,38 @@ function initBranchLocationFilter() {
     const branchSelect = document.getElementById('branchId');
     if (!branchSelect) return;
 
+    const locationSelect = document.getElementById('locationId');
+
+    // Initial state when page loads
+    locationSelect.disabled = true;
+    locationSelect.innerHTML =
+        `<option value="" selected disabled>Select Branch first...</option>`;
+
     branchSelect.addEventListener('change', async function () {
         const branchCode = this.value;
-        const locationSelect = document.getElementById('locationId');
 
-        // Reset location dropdown first
-        locationSelect.innerHTML =
-            `<option value="" selected disabled>Select Branch first...</option>`;
-
-        // User selected "None"
+        // No branch selected
         if (!branchCode) {
-            locationSelect.disabled = false;
-
-            document.getElementById('searchInput')
-                ?.dispatchEvent(
-                    new Event('input')
-                );
-
+            locationSelect.disabled = true;
+            locationSelect.innerHTML =
+                `<option value="" selected disabled>Select Branch first...</option>`;
             return;
         }
 
-        locationSelect.innerHTML = `<option>Loading...</option>`;
+        // Loading state
         locationSelect.disabled = true;
+        locationSelect.innerHTML =
+            `<option selected disabled>Loading...</option>`;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/locations/by-branch/${branchCode}`);
+            const res = await fetch(
+                `${API_BASE_URL}/locations/by-branch/${branchCode}`
+            );
+
             const data = await res.json();
 
-            locationSelect.innerHTML = `<option value="" selected>None</option>`;
+            locationSelect.innerHTML =
+                `<option value="" selected>None</option>`;
 
             data.forEach(loc => {
                 const option = document.createElement('option');
@@ -238,14 +242,12 @@ function initBranchLocationFilter() {
 
             locationSelect.disabled = false;
 
-            document.getElementById('searchInput')
-                ?.dispatchEvent(
-                    new Event('input')
-                );
-
         } catch (err) {
             console.error(err);
-            locationSelect.innerHTML = `<option>Error loading locations</option>`;
+
+            locationSelect.disabled = true;
+            locationSelect.innerHTML =
+                `<option selected disabled>Error loading locations</option>`;
         }
     });
 }
@@ -319,11 +321,11 @@ function debounce(func, wait) {
 
 function escapeHtml(unsafe) {
     return (unsafe || '').toString()
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 // Authentication Logic
@@ -420,16 +422,16 @@ if (loginForm) {
 }
 
 function togglePassword() {
-  const input = document.getElementById("password");
-  const icon = document.querySelector(".toggle-password");
+    const input = document.getElementById("password");
+    const icon = document.querySelector(".toggle-password");
 
-  if (input.type === "password") {
-    input.type = "text";
-    icon.classList.replace("fa-eye", "fa-eye-slash");
-  } else {
-    input.type = "password";
-    icon.classList.replace("fa-eye-slash", "fa-eye");
-  }
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace("fa-eye", "fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.replace("fa-eye-slash", "fa-eye");
+    }
 }
 // Modal System Logic
 const Modal = (() => {
