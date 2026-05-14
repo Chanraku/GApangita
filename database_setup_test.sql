@@ -1,21 +1,29 @@
-DROP DATABASE gapangita_db_TEST;
-CREATE DATABASE IF NOT EXISTS gapangita_db_TEST;
+DROP USER IF EXISTS 'gapangita_user'@'localhost';
 
-CREATE USER 'gapangita_user'@'localhost' IDENTIFIED BY 'Gapangita_Secure_123!';
+DROP DATABASE IF EXISTS gapangita_db_test;
+CREATE DATABASE IF NOT EXISTS gapangita_db_test;
+
+CREATE USER 'gapangita_user'@'localhost'
+IDENTIFIED BY 'Gapangita_Secure_123!';
+
 GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
+-- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
+-- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
 FLUSH PRIVILEGES;
 
-USE gapangita_db_TEST;
+USE gapangita_db_test;
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
     category_code VARCHAR(15) UNIQUE,
-    NAME VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE,
+    DESCRIPTION VARCHAR(200)
 );
 
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     user_code VARCHAR(15) UNIQUE,
+    user_role ENUM('Admin', 'Staff') NOT NULL,
     username VARCHAR(100) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     PASSWORD VARCHAR(255) NOT NULL DEFAULT 'password123',
@@ -31,7 +39,8 @@ CREATE TABLE IF NOT EXISTS branches (
 CREATE TABLE IF NOT EXISTS locations (
     location_id INT AUTO_INCREMENT PRIMARY KEY,
     location_code VARCHAR(15) UNIQUE,
-    NAME VARCHAR(100) NOT NULL UNIQUE
+    NAME VARCHAR(100) NOT NULL UNIQUE,
+    DESCRIPTION VARCHAR(200)
 );
 
 DROP TABLE IF EXISTS branchLocations;
@@ -855,18 +864,18 @@ DELIMITER ;
 
 -- Insert Into Statements
 -- Insert some default categories
-INSERT IGNORE INTO categories (NAME) VALUES
-('Electronics'),
-('Wallets & IDs'),
-('Keys'),
-('Bags & Luggage'),
-('Eyewear'),
-('Jewelry & Watches'),
-('Clothing'),
-('Books & Stationery'),
-('Documents'),
-('Sports & Outdoors'),
-('Miscellaneous');
+INSERT IGNORE INTO categories (NAME, DESCRIPTION) VALUES
+('Electronics', 'Smartphones, Laptops, Tablets, etc.'),
+('Wallets & IDs', 'Purses, Credit Cards, etc.'),
+('Keys', 'House, Car, Keychains'),
+('Bags & Luggage', 'Backpacks, Handbags, etc.'),
+('Eyewear', 'Sunglasses, Prescription Glasses'),
+('Jewelry & Watches', 'Rings, Necklaces, etc.'),
+('Clothing', 'Jackets, Sweaters, Hats, etc.'),
+('Books & Stationery', 'Textbooks, Notebooks, etc.'),
+('Documents', 'Folders, Certificates, Files'),
+('Sports & Outdoors', 'Water Bottles, Gym Bags, etc.'),
+('Miscellaneous', 'Health & Beauty, Tools, Other');
 
 -- Insert some default branches
 INSERT IGNORE INTO branches (NAME) VALUES
@@ -874,18 +883,18 @@ INSERT IGNORE INTO branches (NAME) VALUES
 ('UM Tagum Visayan');
 
 -- Insert some default locations
-INSERT IGNORE INTO locations (NAME) VALUES
-('Academic Buildings'),
-('Laboratories'),
-('Libraries'),
-('Student Centers'),
-('Administrative Offices'),
-('Cafeterias & Food Courts'),
-('Sports & Athletics'),
-('Religious Spaces'),
-('Parking Areas'),
-('Outdoor Areas'),
-('Restrooms');
+INSERT IGNORE INTO locations (NAME, DESCRIPTION) VALUES
+('Academic Buildings', 'Lecture Halls, Classrooms'),
+('Laboratories', 'Computer, Science, Engineering'),
+('Libraries', 'Main Library, Study Rooms'),
+('Student Centers', 'Lounge, Organization Offices'),
+('Administrative Offices', 'Registrar, Finance'),
+('Cafeterias & Food Courts', 'Main Canteen, Kiosks'),
+('Sports & Athletics', 'Gymnasium, Open Courts'),
+('Religious Spaces', 'Campus Chapel, Prayer Rooms'),
+('Parking Areas', 'Student, Faculty, Drop-off'),
+('Outdoor Areas', 'Gazebos, Courtyards, Main Gate'),
+('Restrooms', 'Floor-specific, PWD Access');
 
 -- Insert some default branchLocations
 INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
@@ -912,6 +921,7 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 ('BRH0002', 'LOC0011');
 
 -- Insert a default anonymous user
-INSERT IGNORE INTO users (username, email, PASSWORD, contact_number) VALUES
-('Anonymous', 'anonymous@gapangita.local', 'password123', '0000000000'),
-('Admin123', 'admin@gapangita.local', 'Admin123', '0000000001');
+INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) VALUES
+('Admin', 'Admin123', 'admin@gapangita.local', 'Admin123', '0000000000'),
+('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
+('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
