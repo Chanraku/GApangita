@@ -42,6 +42,54 @@ def levenshtein_distance(s1, s2):
         previous_row = current_row
     return previous_row[-1]
 
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT category_code, NAME FROM categories ORDER BY NAME")
+    rows = cursor.fetchall()
+
+    return jsonify(rows)
+
+@app.route('/api/branches', methods=['GET'])
+def get_branches():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT branch_code, NAME FROM branches ORDER BY NAME")
+    rows = cursor.fetchall()
+
+    return jsonify(rows)
+
+@app.route('/api/locations', methods=['GET'])
+def get_locations():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT location_code, NAME FROM locations ORDER BY NAME")
+    rows = cursor.fetchall()
+
+    return jsonify(rows)
+
+@app.route('/api/locations/by-branch/<branch_code>', methods=['GET'])
+def get_locations_by_branch(branch_code):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT l.location_code, l.NAME
+        FROM locations l
+        JOIN branchLocations bl ON l.location_code = bl.location_code
+        WHERE bl.branch_code = %s
+        ORDER BY l.NAME
+    """
+
+    cursor.execute(query, (branch_code,))
+    rows = cursor.fetchall()
+
+    return jsonify(rows)
+
 @app.route('/api/items', methods=['POST'])
 def report_item():
     if 'user_id' not in session:

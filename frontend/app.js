@@ -2,11 +2,18 @@ const API_BASE_URL = 'http://localhost:5000/api';
 const SAFE_ITEM_TYPES = ['lost', 'found'];
 let isFormDirty = false;
 let isNavigating = false;
+let isHandlingModalNavigation = false;
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     checkAuth();
     initSearchAndFilters();
+
+    await loadCategories();
+    await loadBranches();
+
+    initBranchLocationFilter();
+    initUnsavedChangesTracker();
 });
 
 // Search functionality
@@ -127,6 +134,69 @@ function displayResults(items, resultsContainer) {
 }).join('');
 }
 
+async function loadCategories() {
+    const res = await fetch(`${API_BASE_URL}/categories`);
+    const data = await res.json();
+
+    const select = document.getElementById('categoryId');
+    select.innerHTML = `<option value="" disabled selected>Select a category...</option>`;
+
+    data.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.category_code;
+        option.textContent = cat.NAME;
+        select.appendChild(option);
+    });
+}
+
+async function loadBranches() {
+    const res = await fetch(`${API_BASE_URL}/branches`);
+    const data = await res.json();
+
+    const select = document.getElementById('branchId');
+    select.innerHTML = `<option value="" disabled selected>Select School Branch...</option>`;
+
+    data.forEach(branch => {
+        const option = document.createElement('option');
+        option.value = branch.branch_code;
+        option.textContent = branch.NAME;
+        select.appendChild(option);
+    });
+}
+
+function initBranchLocationFilter() {
+    const branchSelect = document.getElementById('branchId');
+    if (!branchSelect) return;
+
+    branchSelect.addEventListener('change', async function () {
+        const branchCode = this.value;
+        const locationSelect = document.getElementById('locationId');
+
+        locationSelect.innerHTML = `<option>Loading...</option>`;
+        locationSelect.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/locations/by-branch/${branchCode}`);
+            const data = await res.json();
+
+            locationSelect.innerHTML = `<option value="">None / Don't know</option>`;
+
+            data.forEach(loc => {
+                const option = document.createElement('option');
+                option.value = loc.location_code;
+                option.textContent = loc.NAME;
+                locationSelect.appendChild(option);
+            });
+
+            locationSelect.disabled = false;
+
+        } catch (err) {
+            console.error(err);
+            locationSelect.innerHTML = `<option>Error loading locations</option>`;
+        }
+    });
+}
+
 // Report form functionality
 const reportForm = document.getElementById('reportForm');
 if (reportForm) {
@@ -173,7 +243,10 @@ if (reportForm) {
             }
         } catch (error) {
             console.error('Submit error:', error);
-            showModal('Connection Error', 'Failed to connect to the server.');
+            Modal.show({
+                title: 'Connection Error',
+                message: 'Failed to connect to the server.'
+            });
         }
     });
 }
@@ -319,6 +392,7 @@ const Modal = (() => {
 
     function show({ title = '', message = '', type = 'alert', onConfirm = null }) {
         titleEl.textContent = title;
+        messageEl.textContent = message;
         messageEl.innerHTML = message.replace(/\n/g, '<br>');
         footerEl.innerHTML = '';
 
@@ -359,33 +433,35 @@ const Modal = (() => {
     return { show, hide };
 })();
 
-function showItemDetails(item) {
-    const details = `
-        Name: ${item.name}
-        Status: ${item.status || 'N/A'}
-        Type: ${item.item_type}
+function formatDetails(item) {
+    return `
+        Name: ${escapeHtml(item.name)}
+        Status: ${escapeHtml(item.status || 'N/A')}
+        Type: ${escapeHtml(item.item_type)}
 
-        Category: ${item.categoryName || 'N/A'} (${item.categoryDescription})
+        Category: ${escapeHtml(item.categoryName || 'N/A')} (${escapeHtml(item.categoryDescription || '')})
 
-        Branch: ${item.branchName || 'N/A'}
+        Branch: ${escapeHtml(item.branchName || 'N/A')}
 
-        Location: ${item.locationName || 'N/A'} (${item.locationDescription})
+        Location: ${escapeHtml(item.locationName || 'N/A')} (${escapeHtml(item.locationDescription || '')})
 
         Description:
-        ${item.description || 'No description provided.'}
-        
+        ${escapeHtml(item.description || 'No description provided.')}
+
         Date Reported:
         ${new Date(item.date_reported).toLocaleString()}
     `;
+}
 
+function showItemDetails(item) {
     Modal.show({
         title: 'Item Details',
-        message: details
+        message: formatDetails(item)
     });
 }
 
 // Unsaved Changes Tracker
-document.addEventListener('DOMContentLoaded', () => {
+function initUnsavedChangesTracker() {
     // Listen for changes on ALL inputs, textareas, and selects globally
     const trackableElements = document.querySelectorAll('input, textarea, select');
     trackableElements.forEach(el => {
@@ -400,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { isFormDirty = false; }, 50);
         });
         form.addEventListener('reset', () => {
-             isFormDirty = false;
+            isFormDirty = false;
         });
     });
 
@@ -445,5 +521,5 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
-});
+}
 
