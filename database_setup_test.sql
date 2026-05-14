@@ -922,6 +922,7 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 
 -- Insert a default anonymous user
 INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) VALUES
-('Admin', 'Admin123', 'admin@gapangita.local', 'Admin123', '0000000000'),
-('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
-('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
+('Admin', 'Admin123', 'admin@gapangita.local', '$2b$12$SIZ70qTKnwZoab81FHOXKeFHrL8zMbi8UokSp8q8elLVuL.gxYkMS', '0000000000'), -- Pass is Admin123
+('Admin', 'Admin', 'admin@gapangita.local', 'Admin', '0000000001');
+-- ('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
+-- ('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
