@@ -1,11 +1,16 @@
-DROP DATABASE gapangita_db_TEST;
-CREATE DATABASE IF NOT EXISTS gapangita_db_TEST;
+DROP USER IF EXISTS 'gapangita_user'@'localhost';
 
-CREATE USER 'gapangita_user'@'localhost' IDENTIFIED BY 'Gapangita_Secure_123!';
+DROP DATABASE IF EXISTS gapangita_db_test;
+CREATE DATABASE IF NOT EXISTS gapangita_db_test;
+
+CREATE USER 'gapangita_user'@'localhost'
+IDENTIFIED BY 'Gapangita_Secure_123!';
+
 GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
+-- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
+-- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
 FLUSH PRIVILEGES;
 
-USE gapangita_db_TEST;
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,

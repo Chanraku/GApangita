@@ -11,7 +11,7 @@ db_config = {
     'host': 'localhost',
     'user': 'gapangita_user',
     'password': 'Gapangita_Secure_123!',
-    'database': 'gapangita_db_TEST'
+    'database': 'gapangita_db_test'
 }
 
 def get_db_connection():
