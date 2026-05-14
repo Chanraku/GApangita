@@ -252,69 +252,6 @@ function initBranchLocationFilter() {
     });
 }
 
-async function loadCategories() {
-    const res = await fetch(`${API_BASE_URL}/categories`);
-    const data = await res.json();
-
-    const select = document.getElementById('categoryId');
-    select.innerHTML = `<option value="" disabled selected>Select a category...</option>`;
-
-    data.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.category_code;
-        option.textContent = cat.NAME;
-        select.appendChild(option);
-    });
-}
-
-async function loadBranches() {
-    const res = await fetch(`${API_BASE_URL}/branches`);
-    const data = await res.json();
-
-    const select = document.getElementById('branchId');
-    select.innerHTML = `<option value="" disabled selected>Select School Branch...</option>`;
-
-    data.forEach(branch => {
-        const option = document.createElement('option');
-        option.value = branch.branch_code;
-        option.textContent = branch.NAME;
-        select.appendChild(option);
-    });
-}
-
-function initBranchLocationFilter() {
-    const branchSelect = document.getElementById('branchId');
-    if (!branchSelect) return;
-
-    branchSelect.addEventListener('change', async function () {
-        const branchCode = this.value;
-        const locationSelect = document.getElementById('locationId');
-
-        locationSelect.innerHTML = `<option>Loading...</option>`;
-        locationSelect.disabled = true;
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/locations/by-branch/${branchCode}`);
-            const data = await res.json();
-
-            locationSelect.innerHTML = `<option value="">None / Don't know</option>`;
-
-            data.forEach(loc => {
-                const option = document.createElement('option');
-                option.value = loc.location_code;
-                option.textContent = loc.NAME;
-                locationSelect.appendChild(option);
-            });
-
-            locationSelect.disabled = false;
-
-        } catch (err) {
-            console.error(err);
-            locationSelect.innerHTML = `<option>Error loading locations</option>`;
-        }
-    });
-}
-
 // Report form functionality
 const reportForm = document.getElementById('reportForm');
 if (reportForm) {
@@ -640,4 +577,3 @@ function initUnsavedChangesTracker() {
         }
     });
 }
-
