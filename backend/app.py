@@ -44,51 +44,68 @@ def levenshtein_distance(s1, s2):
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT category_code, NAME FROM categories ORDER BY NAME")
-    rows = cursor.fetchall()
+        cursor.execute("SELECT category_code, NAME FROM categories ORDER BY NAME")
+        rows = cursor.fetchall()
+        return jsonify(rows)
 
-    return jsonify(rows)
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/api/branches', methods=['GET'])
 def get_branches():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT branch_code, NAME FROM branches ORDER BY NAME")
-    rows = cursor.fetchall()
+        cursor.execute("SELECT branch_code, NAME FROM branches ORDER BY NAME")
+        rows = cursor.fetchall()
+        return jsonify(rows)
 
-    return jsonify(rows)
+    finally:
+        cursor.close()
+        conn.close()
+    
 
 @app.route('/api/locations', methods=['GET'])
 def get_locations():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT location_code, NAME FROM locations ORDER BY NAME")
-    rows = cursor.fetchall()
+        cursor.execute("SELECT location_code, NAME FROM locations ORDER BY NAME")
+        rows = cursor.fetchall()
+        return jsonify(rows)
 
-    return jsonify(rows)
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/api/locations/by-branch/<branch_code>', methods=['GET'])
 def get_locations_by_branch(branch_code):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-    query = """
-        SELECT l.location_code, l.NAME
-        FROM locations l
-        JOIN branchLocations bl ON l.location_code = bl.location_code
-        WHERE bl.branch_code = %s
-        ORDER BY l.NAME
-    """
+        query = """
+            SELECT l.location_code, l.NAME
+            FROM locations l
+            JOIN branchLocations bl ON l.location_code = bl.location_code
+            WHERE bl.branch_code = %s
+            ORDER BY l.NAME
+        """
 
-    cursor.execute(query, (branch_code,))
-    rows = cursor.fetchall()
+        cursor.execute(query, (branch_code,))
+        rows = cursor.fetchall()
+        return jsonify(rows)
 
-    return jsonify(rows)
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/api/items', methods=['POST'])
 def report_item():
@@ -129,7 +146,7 @@ def report_item():
         """
         values = (
             data.get('name'), data.get('description'), data.get('item_type'),
-            data.get('category_id'), data.get('branch_id'), data.get('location_id'), 
+            data.get('category_id'), data.get('branch_id'), data.get('location_id'),
             session.get('user_code') # Use logged in user's code
         )
         
@@ -145,30 +162,56 @@ def report_item():
             conn.close()
 
 @app.route('/api/search', methods=['GET'])
-def search_items():
+def search_openItems():
     name_q = request.args.get('name_q', '').strip()
     desc_q = request.args.get('desc_q', '').strip()
     q = request.args.get('q', '').strip()
-    filter_type = request.args.get('filter', '').lower()
+    filter_itemType = request.args.get('filter', '').lower()
+
+    category_id = request.args.get('category_id', '')
+    branch_id = request.args.get('branch_id', '')
+    location_id = request.args.get('location_id', '')
     
     if not name_q and q:
         name_q = q
     if not desc_q and q:
         desc_q = q
 
-    if not name_q and not desc_q:
+    if (not name_q and
+        not desc_q and
+        not category_id and
+        not branch_id and
+        not location_id):
+
         return jsonify([])
 
     view_name = 'vw_openAllItems'
-    if filter_type == 'lost':
+    if filter_itemType == 'lost':
         view_name = 'vw_openLostItems'
-    elif filter_type == 'found':
+    elif filter_itemType == 'found':
         view_name = 'vw_openFoundItems'
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute(f"SELECT * FROM {view_name};")
+        
+        query = f"SELECT * FROM {view_name} WHERE 1=1"
+        params = []
+
+        # Dropdown filters
+        if category_id != '':
+            query += " AND category_code = %s"
+            params.append(category_id)
+
+        if branch_id != '':
+            query += " AND branch_code = %s"
+            params.append(branch_id)
+
+        if location_id != '':
+            query += " AND location_code = %s"
+            params.append(location_id)
+
+        cursor.execute(query, params)
         items = cursor.fetchall()
         
         # Apply Levenshtein distance and convert to percentage similarity

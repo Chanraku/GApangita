@@ -1,7 +1,11 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 const SAFE_ITEM_TYPES = ['lost', 'found'];
+
+const categorySelect = document.getElementById('categoryId');
+const branchSelect = document.getElementById('branchId');
+const locationSelect = document.getElementById('locationId');
+
 let isFormDirty = false;
-let isNavigating = false;
 let isHandlingModalNavigation = false;
 
 // Initialize
@@ -24,12 +28,14 @@ function initSearchAndFilters() {
     const filterPill = document.querySelector('.filter-pill');
     const filterTrack = document.querySelector('.filter-pill__track');
     const filterButtons = document.querySelectorAll('.filter-btn');
+
     let selectedItemType = '';
 
     function positionFilterTrack(activeButton) {
         if (!filterPill || !filterTrack || !activeButton) return;
         const buttonRect = activeButton.getBoundingClientRect();
         const pillRect = filterPill.getBoundingClientRect();
+
         filterTrack.style.width = `${buttonRect.width}px`;
         filterTrack.style.left = `${buttonRect.left - pillRect.left}px`;
     }
@@ -37,11 +43,23 @@ function initSearchAndFilters() {
     const runSearch = debounce(async () => {
         if (!resultsContainer || !searchInput) return;
 
-        const query = searchInput.value.trim();
-        const description = searchDescInput ? searchDescInput.value.trim() : '';
+        const query = searchInput?.value.trim() || '';
+        const description = searchDescInput?.value.trim() || '';
 
-        if (query.length < 2 && description.length < 2) {
-            resultsContainer.innerHTML = '<p>Type at least 2 characters to search...</p>';
+        const category = categorySelect?.value || '';
+        const branch = branchSelect?.value || '';
+        const location = locationSelect?.value || '';
+
+        if (
+            query.length < 2 &&
+            description.length < 2 &&
+            !category &&
+            !branch &&
+            !location
+        ) {
+            resultsContainer.innerHTML =
+                '<p>Type at least 2 characters or choose a filter.</p>';
+
             return;
         }
 
@@ -51,6 +69,9 @@ function initSearchAndFilters() {
             if (query) params.append('name_q', query);
             if (description) params.append('desc_q', description);
             if (selectedItemType) params.append('filter', selectedItemType);
+            if (category) params.append('category_id', category);
+            if (branch) params.append('branch_id', branch);
+            if (location) params.append('location_id', location);
 
             const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, { credentials: 'include' });
             const items = await response.json();
@@ -60,6 +81,10 @@ function initSearchAndFilters() {
             resultsContainer.innerHTML = '<p style="color: red;">Failed to load results. Is the backend running?</p>';
         }
     }, 300);
+    
+    categorySelect?.addEventListener('change', runSearch);
+    branchSelect?.addEventListener('change', runSearch);
+    locationSelect?.addEventListener('change', runSearch);
 
     if (filterButtons.length > 0) {
         filterButtons.forEach(button => {
@@ -94,44 +119,51 @@ function initSearchAndFilters() {
 }
 
 function displayResults(items, resultsContainer) {
-
-
     if (!items || items.length === 0) {
         resultsContainer.innerHTML = '<p>No items found.</p>';
         return;
     }
 
     resultsContainer.innerHTML = items.map(item => {
+        const safeType = SAFE_ITEM_TYPES.includes(item.item_type)
+            ? item.item_type
+            : 'unknown';
 
-    const safeType = SAFE_ITEM_TYPES.includes(item.item_type)
-        ? item.item_type
-        : 'unknown';
+        return `
+            <div class="item-card" data-item='${JSON.stringify(item)}'>
+                <div class="item-card__header">
+                    <h3 class="item-card__title">${escapeHtml(item.name)}</h3>
 
-    return `
-        <div class="item-card" onclick='showItemDetails(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
-            <div class="item-card__header">
-                <h3 class="item-card__title">${escapeHtml(item.name)}</h3>
+                    <span class="item-card__badge item-card__badge--${safeType}">
+                        ${escapeHtml(safeType)}
+                    </span>
+                </div>
 
-                <span class="item-card__badge item-card__badge--${safeType}">
-                    ${escapeHtml(safeType)}
-                </span>
+                <p class="item-card__desc">
+                    ${escapeHtml(item.description || 'No description provided.')}
+                </p>
+
+                <div class="item-card__meta" style="display:flex; justify-content:space-between;">
+                    <span>
+                        Name match:
+                        <strong>${item.name_relevance != null ? item.name_relevance + '%' : 'N/A'}</strong>
+                    </span>
+
+                    <span>
+                        Description match:
+                        <strong>${item.desc_relevance != null ? item.desc_relevance + '%' : 'N/A'}</strong>
+                    </span>
+                </div>
             </div>
+        `;
+    }).join('');
 
-            <p class="item-card__desc">
-                ${escapeHtml(item.description || 'No description provided.')}
-            </p>
-
-            <div class="item-card__meta" style="display: flex; justify-content: space-between; width: 100%;">
-                <span title="Name match percentage">
-                    Name match: <strong>${item.name_relevance != null ? item.name_relevance + '%' : 'N/A'}</strong>
-                </span>
-                <span title="Description match percentage">
-                    Description match: <strong>${item.desc_relevance != null ? item.desc_relevance + '%' : 'N/A'}</strong>
-                </span>
-            </div>
-        </div>
-    `;
-}).join('');
+    document.querySelectorAll('.item-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const item = JSON.parse(card.dataset.item);
+            showItemDetails(item);
+        });
+    });
 }
 
 async function loadCategories() {
@@ -139,7 +171,7 @@ async function loadCategories() {
     const data = await res.json();
 
     const select = document.getElementById('categoryId');
-    select.innerHTML = `<option value="" disabled selected>Select a category...</option>`;
+    select.innerHTML = `<option value="" selected>None</option>`;
 
     data.forEach(cat => {
         const option = document.createElement('option');
@@ -154,7 +186,7 @@ async function loadBranches() {
     const data = await res.json();
 
     const select = document.getElementById('branchId');
-    select.innerHTML = `<option value="" disabled selected>Select School Branch...</option>`;
+    select.innerHTML = `<option value="" selected>None</option>`;
 
     data.forEach(branch => {
         const option = document.createElement('option');
@@ -172,6 +204,22 @@ function initBranchLocationFilter() {
         const branchCode = this.value;
         const locationSelect = document.getElementById('locationId');
 
+        // Reset location dropdown first
+        locationSelect.innerHTML =
+            `<option value="" selected disabled>Select Branch first...</option>`;
+
+        // User selected "None"
+        if (!branchCode) {
+            locationSelect.disabled = false;
+
+            document.getElementById('searchInput')
+                ?.dispatchEvent(
+                    new Event('input')
+                );
+
+            return;
+        }
+
         locationSelect.innerHTML = `<option>Loading...</option>`;
         locationSelect.disabled = true;
 
@@ -179,7 +227,7 @@ function initBranchLocationFilter() {
             const res = await fetch(`${API_BASE_URL}/locations/by-branch/${branchCode}`);
             const data = await res.json();
 
-            locationSelect.innerHTML = `<option value="">None / Don't know</option>`;
+            locationSelect.innerHTML = `<option value="" selected>None</option>`;
 
             data.forEach(loc => {
                 const option = document.createElement('option');
@@ -189,6 +237,11 @@ function initBranchLocationFilter() {
             });
 
             locationSelect.disabled = false;
+
+            document.getElementById('searchInput')
+                ?.dispatchEvent(
+                    new Event('input')
+                );
 
         } catch (err) {
             console.error(err);
