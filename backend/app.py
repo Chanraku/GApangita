@@ -67,13 +67,20 @@ def report_item():
 @app.route('/api/search', methods=['GET'])
 def search_items():
     query_str = request.args.get('q', '')
+    filter_type = request.args.get('filter', '').lower()
     if not query_str:
         return jsonify([])
+
+    view_name = 'vw_openAllItems'
+    if filter_type == 'lost':
+        view_name = 'vw_openLostItems'
+    elif filter_type == 'found':
+        view_name = 'vw_openFoundItems'
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM vw_openAllItems;")
+        cursor.execute(f"SELECT * FROM {view_name};")
         items = cursor.fetchall()
         
         # Apply Levenshtein distance and convert to percentage similarity
