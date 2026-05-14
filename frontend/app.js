@@ -75,6 +75,7 @@ function initSearchAndFilters() {
 
             const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, { credentials: 'include' });
             const items = await response.json();
+            
             displayResults(items, resultsContainer);
         } catch (error) {
             console.error('Error fetching search results:', error);
@@ -269,9 +270,15 @@ if (reportForm) {
         
 
         try {
+
+            const csrfToken = localStorage.getItem('csrf_token');
+
             const response = await fetch(`${API_BASE_URL}/items`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
                 body: JSON.stringify(payload),
                 credentials: 'include'
             });
@@ -335,6 +342,11 @@ async function checkAuth() {
         const data = await response.json();
         
         const isAuth = data.is_authenticated;
+
+        if (!isAuth) {
+            localStorage.removeItem('csrf_token');
+        }
+
         const currentPage = window.location.pathname.split('/').pop();
         
         updateNavbar(isAuth, data.user);
@@ -378,8 +390,26 @@ function updateNavbar(isAuth, user) {
 async function logout(e) {
     e.preventDefault();
     try {
-        await fetch(`${API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
-        window.location.href = 'index.html';
+
+        const csrfToken = localStorage.getItem('csrf_token');
+
+        const response = await fetch(`${API_BASE_URL}/logout`, { 
+            method: 'POST', 
+            credentials: 'include',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            }
+        });
+        
+        if (response.ok) {
+            // REMOVE TOKEN AFTER LOGOUT
+            localStorage.removeItem('csrf_token');
+            window.location.href = 'index.html';
+
+        } else {
+            console.error('Logout failed.');
+        }
+
     } catch (error) {
         console.error('Logout failed:', error);
     }
@@ -407,7 +437,14 @@ if (loginForm) {
             });
 
             if (response.ok) {
+
+                const data = await response.json();
+
+                // SAVE CSRF TOKEN
+                localStorage.setItem('csrf_token', data.csrf_token);
+
                 window.location.href = 'report.html';
+
             } else {
                 const err = await response.json();
                 errorEl.textContent = err.error || 'Login failed. Please try again.';
