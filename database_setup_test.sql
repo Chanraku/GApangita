@@ -107,19 +107,34 @@ CREATE TABLE LOGS (
 DROP VIEW IF EXISTS vw_openAllItems;
 CREATE VIEW vw_openAllItems AS
 SELECT
-	item_id,
-	item_code,
-	NAME AS `name`,
-	DESCRIPTION AS `description`,
-	item_type,
-	STATUS AS `status`,
-	category_code,
-	branch_code,
-	location_code,
-	reporter_user_code,
-	file_path,
-	date_reported
-FROM items
+	i.item_id,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.STATUS AS `status`,
+	i.category_code,
+	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
+	i.branch_code,
+	b.name AS `branchName`,
+	c.description AS `branchDescription`,
+	i.location_code,
+	l.name AS `locationName`,
+	c.description AS `locationDescription`,
+	i.reporter_user_code,
+	u.username AS `reporter_username`,
+	i.file_path,
+	i.date_reported	
+FROM items AS i
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+LEFT JOIN users AS u
+	ON i.reporter_user_code = u.username
 WHERE STATUS = 'open';
 -- SELECT * FROM vw_openAllItems;
 
@@ -127,19 +142,31 @@ WHERE STATUS = 'open';
 DROP VIEW IF EXISTS vw_openLostItems;
 CREATE VIEW vw_openLostItems AS
 SELECT
-	item_id,
-	item_code,
-	NAME AS `name`,
-	DESCRIPTION AS `description`,
-	item_type,
-	STATUS AS `status`,
-	category_code,
-	branch_code,
-	location_code,
-	reporter_user_code,
-	file_path,
-	date_reported
-FROM items
+	i.item_id,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.STATUS AS `status`,
+	i.category_code,
+	c.name AS `categoryName`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	i.reporter_user_code,
+	u.username AS `reporter_username`,
+	i.file_path,
+	i.date_reported	
+FROM items AS i
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+LEFT JOIN users AS u
+	ON i.reporter_user_code = u.username
 WHERE STATUS = 'open' AND item_type = 'lost';
 -- SELECT * FROM vw_openLostItems;
 
@@ -147,19 +174,31 @@ WHERE STATUS = 'open' AND item_type = 'lost';
 DROP VIEW IF EXISTS vw_openFoundItems;
 CREATE VIEW vw_openFoundItems AS
 SELECT
-	item_id,
-	item_code,
-	NAME AS `name`,
-	DESCRIPTION AS `description`,
-	item_type,
-	STATUS AS `status`,
-	category_code,
-	branch_code,
-	location_code,
-	reporter_user_code,
-	file_path,
-	date_reported
-FROM items
+	i.item_id,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.STATUS AS `status`,
+	i.category_code,
+	c.name AS `categoryName`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	i.reporter_user_code,
+	u.username AS `reporter_username`,
+	i.file_path,
+	i.date_reported	
+FROM items AS i
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+LEFT JOIN users AS u
+	ON i.reporter_user_code = u.username
 WHERE STATUS = 'open' AND item_type = 'found';
 -- SELECT * FROM vw_openFoundItems;
 
@@ -167,19 +206,31 @@ WHERE STATUS = 'open' AND item_type = 'found';
 DROP VIEW IF EXISTS vw_closedAllItems;
 CREATE VIEW vw_closedAllItems AS
 SELECT
-	item_id,
-	item_code,
-	NAME AS `name`,
-	DESCRIPTION AS `description`,
-	item_type,
-	STATUS AS `status`,
-	category_code,
-	branch_code,
-	location_code,
-	reporter_user_code,
-	file_path,
-	date_reported
-FROM items
+	i.item_id,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.STATUS AS `status`,
+	i.category_code,
+	c.name AS `categoryName`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	i.reporter_user_code,
+	u.username AS `reporter_username`,
+	i.file_path,
+	i.date_reported	
+FROM items AS i
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+LEFT JOIN users AS u
+	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed';
 -- SELECT * FROM vw_closedAllItems;
 
@@ -187,19 +238,31 @@ WHERE STATUS = 'closed';
 DROP VIEW IF EXISTS vw_closedLostItems;
 CREATE VIEW vw_closedLostItems AS
 SELECT
-	item_id,
-	item_code,
-	NAME AS `name`,
-	DESCRIPTION AS `description`,
-	item_type,
-	STATUS AS `status`,
-	category_code,
-	branch_code,
-	location_code,
-	reporter_user_code,
-	file_path,
-	date_reported
-FROM items
+	i.item_id,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.STATUS AS `status`,
+	i.category_code,
+	c.name AS `categoryName`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	i.reporter_user_code,
+	u.username AS `reporter_username`,
+	i.file_path,
+	i.date_reported	
+FROM items AS i
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+LEFT JOIN users AS u
+	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed' AND item_type = 'lost';
 -- SELECT * FROM vw_closedLostItems;
 
@@ -207,19 +270,31 @@ WHERE STATUS = 'closed' AND item_type = 'lost';
 DROP VIEW IF EXISTS vw_closedFoundItems;
 CREATE VIEW vw_closedFoundItems AS
 SELECT
-	item_id,
-	item_code,
-	NAME AS `name`,
-	DESCRIPTION AS `description`,
-	item_type,
-	STATUS AS `status`,
-	category_code,
-	branch_code,
-	location_code,
-	reporter_user_code,
-	file_path,
-	date_reported
-FROM items
+	i.item_id,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.STATUS AS `status`,
+	i.category_code,
+	c.name AS `categoryName`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	i.reporter_user_code,
+	u.username AS `reporter_username`,
+	i.file_path,
+	i.date_reported	
+FROM items AS i
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+LEFT JOIN users AS u
+	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed' AND item_type = 'found';
 -- SELECT * FROM vw_closedFoundItems;
 
@@ -922,6 +997,7 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 
 -- Insert a default anonymous user
 INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) VALUES
-('Admin', 'Admin123', 'admin@gapangita.local', 'Admin123', '0000000000'),
-('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
-('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
+('Admin', 'Admin123', 'admin@gapangita.local', '$2b$12$SIZ70qTKnwZoab81FHOXKeFHrL8zMbi8UokSp8q8elLVuL.gxYkMS', '0000000000'), -- Pass is Admin123
+('Admin', 'Admin', 'admin@gapangita.local', 'Admin', '0000000001');
+-- ('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
+-- ('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
