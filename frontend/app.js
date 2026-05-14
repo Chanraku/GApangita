@@ -5,32 +5,80 @@ let isNavigating = false;
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
+    initSearchAndFilters();
 });
 
 // Search functionality
-const searchInput = document.getElementById('searchInput');
-const resultsContainer = document.getElementById('resultsContainer');
+function initSearchAndFilters() {
+    const searchInput = document.getElementById('searchInput');
+    const searchDescInput = document.getElementById('searchDescInput');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const filterPill = document.querySelector('.filter-pill');
+    const filterTrack = document.querySelector('.filter-pill__track');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    let selectedItemType = '';
 
-if (searchInput) {
-    searchInput.addEventListener('input', debounce(async (e) => {
-        const query = e.target.value.trim();
-        
-        if (query.length < 2) {
+    function positionFilterTrack(activeButton) {
+        if (!filterPill || !filterTrack || !activeButton) return;
+        const buttonRect = activeButton.getBoundingClientRect();
+        const pillRect = filterPill.getBoundingClientRect();
+        filterTrack.style.width = `${buttonRect.width}px`;
+        filterTrack.style.left = `${buttonRect.left - pillRect.left}px`;
+    }
+
+    const runSearch = debounce(async () => {
+        if (!resultsContainer || !searchInput) return;
+
+        const query = searchInput.value.trim();
+        const description = searchDescInput ? searchDescInput.value.trim() : '';
+        const searchValue = query || description;
+
+        if (searchValue.length < 2) {
             resultsContainer.innerHTML = '<p>Type at least 2 characters to search...</p>';
             return;
         }
 
         try {
             resultsContainer.innerHTML = '<p>Searching...</p>';
-            const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`, { credentials: 'include' });
+            const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(searchValue)}&filter=${encodeURIComponent(selectedItemType)}`, { credentials: 'include' });
             const items = await response.json();
-            
             displayResults(items);
         } catch (error) {
             console.error('Error fetching search results:', error);
             resultsContainer.innerHTML = '<p style="color: red;">Failed to load results. Is the backend running?</p>';
         }
-    }, 300));
+    }, 300);
+
+    if (filterButtons.length > 0) {
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                selectedItemType = button.textContent.trim().toLowerCase();
+                if (selectedItemType === 'all') selectedItemType = '';
+                positionFilterTrack(button);
+                runSearch();
+            });
+        });
+
+        const initialActive = document.querySelector('.filter-btn.active') || filterButtons[0];
+        if (initialActive) {
+            positionFilterTrack(initialActive);
+        }
+
+        window.addEventListener('resize', () => {
+            const activeButton = document.querySelector('.filter-btn.active');
+            if (activeButton) positionFilterTrack(activeButton);
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', runSearch);
+    }
+
+    if (searchDescInput) {
+        searchDescInput.addEventListener('input', runSearch);
+    }
 }
 
 function displayResults(items) {
