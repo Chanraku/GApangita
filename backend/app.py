@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session
 import mysql.connector
 from flask_cors import CORS
+import re
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_for_local_use' # Change this in production
@@ -13,6 +14,10 @@ db_config = {
     'password': 'Gapangita_Secure_123!',
     'database': 'gapangita_db_TEST'
 }
+
+MAX_DESCRIPTION_LENGTH = 1000
+ALLOWED_ITEM_TYPES = ['lost', 'found']
+USERNAME_REGEX = r'^[a-zA-Z0-9_]{3,20}$'
 
 def get_db_connection():
     return mysql.connector.connect(**db_config)
@@ -40,6 +45,30 @@ def report_item():
         return jsonify({'error': 'Unauthorized. Please log in.'}), 401
     
     data = request.json
+
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    item_type = data.get('item_type', '').lower().strip()
+
+    # Validate required fields
+    if not name:
+        return jsonify({
+            'error': 'Item name is required.'
+        }), 400
+
+    # Validate item type
+    if item_type not in ALLOWED_ITEM_TYPES:
+        return jsonify({
+            'error': 'Invalid item type.'
+        }), 400
+
+    # Validate description length
+    if len(description) > MAX_DESCRIPTION_LENGTH:
+        return jsonify({
+            'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
+        }), 400
+
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -111,11 +140,17 @@ def search_items():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
-    username = data.get('username')
-    password = data.get('password')
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
 
     if not username or not password:
         return jsonify({'error': 'Username and password required'}), 400
+    
+    # username validation to prevent SQL injection and ensure proper format
+    if not re.match(USERNAME_REGEX, username):
+        return jsonify({
+            'error': 'Invalid username format'
+        }), 400
 
     try:
         conn = get_db_connection()

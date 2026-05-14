@@ -1,4 +1,5 @@
 const API_BASE_URL = 'http://localhost:5000/api';
+const SAFE_ITEM_TYPES = ['lost', 'found'];
 let isFormDirty = false;
 let isNavigating = false;
 
@@ -42,7 +43,7 @@ function initSearchAndFilters() {
             resultsContainer.innerHTML = '<p>Searching...</p>';
             const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(searchValue)}&filter=${encodeURIComponent(selectedItemType)}`, { credentials: 'include' });
             const items = await response.json();
-            displayResults(items);
+            displayResults(items, resultsContainer);
         } catch (error) {
             console.error('Error fetching search results:', error);
             resultsContainer.innerHTML = '<p style="color: red;">Failed to load results. Is the backend running?</p>';
@@ -81,25 +82,46 @@ function initSearchAndFilters() {
     }
 }
 
-function displayResults(items) {
+function displayResults(items, resultsContainer) {
+
+
     if (!items || items.length === 0) {
         resultsContainer.innerHTML = '<p>No items found.</p>';
         return;
     }
 
-    resultsContainer.innerHTML = items.map(item => `
+    resultsContainer.innerHTML = items.map(item => {
+
+    const safeType = SAFE_ITEM_TYPES.includes(item.item_type)
+        ? item.item_type
+        : 'unknown';
+
+    return `
         <div class="item-card">
             <div class="item-card__header">
                 <h3 class="item-card__title">${escapeHtml(item.name)}</h3>
-                <span class="item-card__badge item-card__badge--${item.item_type}">${item.item_type}</span>
+
+                <span class="item-card__badge item-card__badge--${safeType}">
+                    ${escapeHtml(safeType)}
+                </span>
             </div>
-            <p class="item-card__desc">${escapeHtml(item.description || 'No description provided.')}</p>
+
+            <p class="item-card__desc">
+                ${escapeHtml(item.description || 'No description provided.')}
+            </p>
+
             <div class="item-card__meta">
-                <span>Date: ${new Date(item.date_reported).toLocaleDateString()}</span>
-                <span title="Higher percentage means better match!">Match: ${Math.round(item.relevance)}%</span>
+                <span>
+                    Date: ${new Date(item.date_reported).toLocaleDateString()}
+                </span>
+
+                <span title="Higher percentage means better match!">
+                    Match: ${Math.round(item.relevance)}%
+                </span>
             </div>
         </div>
-    `).join('');
+    `;
+}).join('');
 }
 
 // Report form functionality
@@ -199,7 +221,7 @@ function updateNavbar(isAuth, user) {
             <a href="index.html" class="navbar__link">Home</a>
             <a href="report.html" class="navbar__link">Report Item</a>
             <div class="navbar__user">
-                <span><i class="fa-solid fa-user-circle"></i> ${user.username}</span>
+                <span><i class="fa-solid fa-user-circle"></i> ${escapeHtml(user.username)}</span>
                 <a href="#" id="logoutBtn" class="navbar__link" style="margin-left: 15px;">Logout</a>
             </div>
         `;
