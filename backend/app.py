@@ -1,11 +1,22 @@
 from flask import Flask, request, jsonify, session
 from flask_bcrypt import Bcrypt
+from datetime import timedelta
 import mysql.connector
 from flask_cors import CORS
 import re
+import secrets
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
+
+app.permanent_session_lifetime = timedelta(hours=2)
+
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+# Change to True in HTTPS production
+app.config['SESSION_COOKIE_SECURE'] = False
 
 app.secret_key = 'super_secret_key_for_local_use' # Change this in production
 CORS(app, supports_credentials=True)
@@ -41,6 +52,20 @@ def levenshtein_distance(s1, s2):
             current_row.append(min(insertions, deletions, substitutions))
         previous_row = current_row
     return previous_row[-1]
+
+def validate_csrf():
+    token = request.headers.get('X-CSRF-Token')
+
+    if not token:
+        return False
+
+    stored_token = session.get('csrf_token')
+
+    if not stored_token:
+        return False
+
+    return secrets.compare_digest(token, stored_token)
+
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
@@ -112,6 +137,9 @@ def report_item():
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized. Please log in.'}), 401
     
+    if not validate_csrf():
+        return jsonify({'error': 'Invalid CSRF token'}), 403
+
     data = request.json
 
     name = data.get('name', '').strip()
@@ -281,13 +309,18 @@ def login():
         # Check if user exists AND password hash matches
         if user and bcrypt.check_password_hash(user['password'], password):
 
+            session.permanent = True
+
             session['user_id'] = user['user_id']
             session['user_code'] = user['user_code']
             session['user_role'] = user['user_role']
             session['username'] = user['username']
+            csrf_token = secrets.token_hex(32)
+            session['csrf_token'] = csrf_token
 
             return jsonify({
                 'message': 'Logged in successfully',
+                'csrf_token': csrf_token,
                 'user': {
                     'user_id': user['user_id'],
                     'user_code': user['user_code'],
@@ -312,7 +345,15 @@ def login():
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
+
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    if not validate_csrf():
+        return jsonify({'error': 'Invalid CSRF token'}), 403
+    
     session.clear()
+    
     return jsonify({'message': 'Logged out successfully'}), 200
 
 @app.route('/api/auth-status', methods=['GET'])
