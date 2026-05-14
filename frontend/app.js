@@ -39,16 +39,20 @@ function initSearchAndFilters() {
 
         const query = searchInput.value.trim();
         const description = searchDescInput ? searchDescInput.value.trim() : '';
-        const searchValue = query || description;
 
-        if (searchValue.length < 2) {
+        if (query.length < 2 && description.length < 2) {
             resultsContainer.innerHTML = '<p>Type at least 2 characters to search...</p>';
             return;
         }
 
         try {
             resultsContainer.innerHTML = '<p>Searching...</p>';
-            const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(searchValue)}&filter=${encodeURIComponent(selectedItemType)}`, { credentials: 'include' });
+            const params = new URLSearchParams();
+            if (query) params.append('name_q', query);
+            if (description) params.append('desc_q', description);
+            if (selectedItemType) params.append('filter', selectedItemType);
+
+            const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, { credentials: 'include' });
             const items = await response.json();
             displayResults(items, resultsContainer);
         } catch (error) {
@@ -117,13 +121,12 @@ function displayResults(items, resultsContainer) {
                 ${escapeHtml(item.description || 'No description provided.')}
             </p>
 
-            <div class="item-card__meta">
-                <span>
-                    Date: ${new Date(item.date_reported).toLocaleDateString()}
+            <div class="item-card__meta" style="display: flex; justify-content: space-between; width: 100%;">
+                <span title="Name match percentage">
+                    Name match: <strong>${item.name_relevance != null ? item.name_relevance + '%' : 'N/A'}</strong>
                 </span>
-
-                <span title="Higher percentage means better match!">
-                    Match: ${Math.round(item.relevance)}%
+                <span title="Description match percentage">
+                    Description match: <strong>${item.desc_relevance != null ? item.desc_relevance + '%' : 'N/A'}</strong>
                 </span>
             </div>
         </div>
