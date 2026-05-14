@@ -95,9 +95,17 @@ def report_item():
 
 @app.route('/api/search', methods=['GET'])
 def search_items():
-    query_str = request.args.get('q', '')
+    name_q = request.args.get('name_q', '').strip()
+    desc_q = request.args.get('desc_q', '').strip()
+    q = request.args.get('q', '').strip()
     filter_type = request.args.get('filter', '').lower()
-    if not query_str:
+    
+    if not name_q and q:
+        name_q = q
+    if not desc_q and q:
+        desc_q = q
+
+    if not name_q and not desc_q:
         return jsonify([])
 
     view_name = 'vw_openAllItems'
@@ -114,16 +122,26 @@ def search_items():
         
         # Apply Levenshtein distance and convert to percentage similarity
         for item in items:
-            dist_name = levenshtein_distance(query_str, item['name'])
-            max_len_name = max(len(query_str), len(item['name']))
-            sim_name = ((max_len_name - dist_name) / max_len_name * 100) if max_len_name > 0 else 0
+            sim_name = 0
+            if name_q:
+                dist_name = levenshtein_distance(name_q, item['name'])
+                max_len_name = max(len(name_q), len(item['name']))
+                sim_name = ((max_len_name - dist_name) / max_len_name * 100) if max_len_name > 0 else 0
 
+            sim_desc = 0
             desc_str = item['description'] or ""
-            dist_desc = levenshtein_distance(query_str, desc_str)
-            max_len_desc = max(len(query_str), len(desc_str))
-            sim_desc = ((max_len_desc - dist_desc) / max_len_desc * 100) if max_len_desc > 0 else 0
+            if desc_q:
+                dist_desc = levenshtein_distance(desc_q, desc_str)
+                max_len_desc = max(len(desc_q), len(desc_str))
+                sim_desc = ((max_len_desc - dist_desc) / max_len_desc * 100) if max_len_desc > 0 else 0
             
-            item['relevance'] = round(max(sim_name, sim_desc))
+            item['name_relevance'] = round(sim_name) if name_q else None
+            item['desc_relevance'] = round(sim_desc) if desc_q else None
+            
+            relevances = []
+            if name_q: relevances.append(sim_name)
+            if desc_q: relevances.append(sim_desc)
+            item['relevance'] = round(max(relevances)) if relevances else 0
             
         # Sort by relevance (higher percentage is better)
         items.sort(key=lambda x: x['relevance'], reverse=True)
