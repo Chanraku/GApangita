@@ -1,9 +1,12 @@
 from flask import Flask, request, jsonify, session
+from flask_bcrypt import Bcrypt
 import mysql.connector
 from flask_cors import CORS
 import re
 
 app = Flask(__name__)
+bcrypt = Bcrypt(app)
+
 app.secret_key = 'super_secret_key_for_local_use' # Change this in production
 CORS(app, supports_credentials=True)
 
@@ -163,8 +166,8 @@ def login():
 
     if not username or not password:
         return jsonify({'error': 'Username and password required'}), 400
-    
-    # username validation to prevent SQL injection and ensure proper format
+
+    # Username validation
     if not re.match(USERNAME_REGEX, username):
         return jsonify({
             'error': 'Invalid username format'
@@ -173,23 +176,46 @@ def login():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # In a real app, use hashed passwords!
-        query = "SELECT user_id, user_code, username FROM users WHERE username = %s AND password = %s"
-        cursor.execute(query, (username, password))
+
+        # ONLY search by username
+        query = """
+            SELECT user_id, user_code, user_role, username, password
+            FROM users
+            WHERE username = %s
+        """
+
+        cursor.execute(query, (username,))
         user = cursor.fetchone()
 
-        if user:
+        # Check if user exists AND password hash matches
+        if user and bcrypt.check_password_hash(user['password'], password):
+
             session['user_id'] = user['user_id']
             session['user_code'] = user['user_code']
+            session['user_role'] = user['user_role']
             session['username'] = user['username']
-            return jsonify({'message': 'Logged in successfully', 'user': user}), 200
-        else:
-            return jsonify({'error': 'Invalid username or password'}), 401
+
+            return jsonify({
+                'message': 'Logged in successfully',
+                'user': {
+                    'user_id': user['user_id'],
+                    'user_code': user['user_code'],
+                    'user_role': user['user_role'],
+                    'username': user['username']
+                }
+            }), 200
+
+        return jsonify({
+            'error': 'Invalid username or password'
+        }), 401
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
     finally:
         if 'cursor' in locals():
             cursor.close()
+
         if 'conn' in locals() and conn.is_connected():
             conn.close()
 
