@@ -97,7 +97,7 @@ function displayResults(items, resultsContainer) {
         : 'unknown';
 
     return `
-        <div class="item-card">
+        <div class="item-card" onclick='showItemDetails(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
             <div class="item-card__header">
                 <h3 class="item-card__title">${escapeHtml(item.name)}</h3>
 
@@ -149,16 +149,24 @@ if (reportForm) {
             });
 
             if (response.ok) {
-                showModal('Success!', 'Report submitted successfully!');
+                Modal.show({
+                    title: 'Success!',
+                    message: 'Report submitted successfully!'
+                });
                 reportForm.reset();
                 isFormDirty = false;
             } else if (response.status === 401) {
-                showModal('Unauthorized', 'You must log in to submit a report. Redirecting...', 'alert', () => {
-                    window.location.href = 'login.html';
+                Modal.show({
+                    title: 'Unauthorized',
+                    message: 'You must log in to submit a report. Redirecting...',
+                    onConfirm: () => window.location.href = 'login.html'
                 });
             } else {
                 const err = await response.json();
-                showModal('Error', `Failed to submit: ${err.error || 'Failed to submit'}`);
+                Modal.show({
+                    title: 'Error',
+                    message: `Failed to submit: ${err.error || 'Failed to submit'}`
+                });
             }
         } catch (error) {
             console.error('Submit error:', error);
@@ -295,48 +303,82 @@ function togglePassword() {
   }
 }
 // Modal System Logic
-let isHandlingModalNavigation = false;
-
-function showModal(title, message, type = 'alert', onConfirm = null) {
+const Modal = (() => {
     const modal = document.getElementById('customModal');
-    if (!modal) return;
+    const titleEl = document.getElementById('modalTitle');
+    const messageEl = document.getElementById('modalMessage');
+    const footerEl = document.getElementById('modalFooter');
 
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalMessage').textContent = message;
-    
-    const footer = document.getElementById('modalFooter');
-    footer.innerHTML = ''; // Clear previous buttons
-
-    if (type === 'confirm') {
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn-cancel';
-        cancelBtn.textContent = 'Cancel';
-        cancelBtn.onclick = () => {
-            modal.style.display = 'none';
-        };
-
-        const confirmBtn = document.createElement('button');
-        confirmBtn.className = 'btn-confirm';
-        confirmBtn.textContent = 'Yes, Proceed';
-        confirmBtn.onclick = () => {
-            modal.style.display = 'none';
-            if (onConfirm) onConfirm();
-        };
-
-        footer.appendChild(cancelBtn);
-        footer.appendChild(confirmBtn);
-    } else {
-        const okBtn = document.createElement('button');
-        okBtn.className = 'btn-confirm';
-        okBtn.textContent = 'OK';
-        okBtn.onclick = () => {
-            modal.style.display = 'none';
-            if (onConfirm) onConfirm(); // onClose action
-        };
-        footer.appendChild(okBtn);
+    if (!modal || !titleEl || !messageEl || !footerEl) {
+        console.warn('Modal elements not found');
+        return {};
     }
 
-    modal.style.display = 'flex';
+    function show({ title = '', message = '', type = 'alert', onConfirm = null }) {
+        titleEl.textContent = title;
+        messageEl.innerHTML = message.replace(/\n/g, '<br>');
+        footerEl.innerHTML = '';
+
+        if (type === 'confirm') {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn-cancel';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = hide;
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'btn-confirm';
+            confirmBtn.textContent = 'Yes, Proceed';
+            confirmBtn.onclick = () => {
+                hide();
+                if (onConfirm) onConfirm();
+            };
+
+            footerEl.append(cancelBtn, confirmBtn);
+        } else {
+            const okBtn = document.createElement('button');
+            okBtn.className = 'btn-confirm';
+            okBtn.textContent = 'OK';
+            okBtn.onclick = () => {
+                hide();
+                if (onConfirm) onConfirm();
+            };
+
+            footerEl.appendChild(okBtn);
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function hide() {
+        modal.style.display = 'none';
+    }
+
+    return { show, hide };
+})();
+
+function showItemDetails(item) {
+    const details = `
+        Name: ${item.name}
+        Status: ${item.status || 'N/A'}
+        Type: ${item.item_type}
+
+        Category: ${item.categoryName || 'N/A'} (${item.categoryDescription})
+
+        Branch: ${item.branchName || 'N/A'}
+
+        Location: ${item.locationName || 'N/A'} (${item.locationDescription})
+
+        Description:
+        ${item.description || 'No description provided.'}
+        
+        Date Reported:
+        ${new Date(item.date_reported).toLocaleString()}
+    `;
+
+    Modal.show({
+        title: 'Item Details',
+        message: details
+    });
 }
 
 // Unsaved Changes Tracker
@@ -388,17 +430,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isFormDirty) {
             e.preventDefault();
 
-            showModal(
-                'Unsaved Changes',
-                'You have unsaved changes. Leave page?',
-                'confirm',
-                () => {
-                    // Set flag to prevent beforeunload default popup from showing
+            Modal.show({
+                title: 'Unsaved Changes',
+                message: 'You have unsaved changes. Leave page?',
+                type: 'confirm',
+                onConfirm: () => {
                     isHandlingModalNavigation = true;
                     isFormDirty = false;
                     window.location.href = href;
                 }
-            );
+            });
         }
     });
 });
