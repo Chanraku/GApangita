@@ -5,6 +5,9 @@ const categorySelect = document.getElementById('categoryId');
 const branchSelect = document.getElementById('branchId');
 const locationSelect = document.getElementById('locationId');
 
+let pageSize = 15;
+let currentPage = 1;
+
 let isFormDirty = false;
 let isHandlingModalNavigation = false;
 
@@ -25,9 +28,16 @@ function initSearchAndFilters() {
     const searchInput = document.getElementById('searchInput');
     const searchDescInput = document.getElementById('searchDescInput');
     const resultsContainer = document.getElementById('resultsContainer');
+
     const filterPill = document.querySelector('.filter-pill');
     const filterTrack = document.querySelector('.filter-pill__track');
     const filterButtons = document.querySelectorAll('.filter-btn');
+    
+    const pagePill = document.querySelector('.page-pill');
+    const pageTrack = document.querySelector('.page-pill__track');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    const pageNumberEl = document.getElementById('pageNumber');
 
     let selectedItemType = '';
 
@@ -39,6 +49,53 @@ function initSearchAndFilters() {
         filterTrack.style.width = `${buttonRect.width}px`;
         filterTrack.style.left = `${buttonRect.left - pillRect.left}px`;
     }
+
+    function positionPageTrack(activeButton) {
+        if (!pagePill || !pageTrack || !activeButton) return;
+        const buttonRect = activeButton.getBoundingClientRect();
+        const pillRect = pagePill.getBoundingClientRect();
+
+        pageTrack.style.width = `${buttonRect.width}px`;
+        pageTrack.style.left = `${buttonRect.left - pillRect.left}px`;
+    }
+
+    pagePill?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.page-btn');
+        if (!btn) return;
+
+        document.querySelectorAll('.page-btn')
+            .forEach(b => b.classList.remove('active'));
+
+        btn.classList.add('active');
+
+        pageSize = parseInt(btn.textContent.trim(), 10);
+        currentPage = 1;
+
+        requestAnimationFrame(() => {
+            positionPageTrack(btn);
+        });
+
+        runSearch();
+    });
+
+    function updatePageUI() {
+        pageNumberEl.textContent = currentPage;
+        prevBtn.disabled = currentPage === 1;
+    }
+
+    prevBtn?.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            updatePageUI();
+            runSearch();
+        }
+    });
+
+    nextBtn?.addEventListener('click', () => {
+        currentPage++;
+        updatePageUI();
+        runSearch();
+    });
 
     const runSearch = debounce(async () => {
         if (!resultsContainer || !searchInput) return;
@@ -72,11 +129,14 @@ function initSearchAndFilters() {
             if (category) params.append('category_id', category);
             if (branch) params.append('branch_id', branch);
             if (location) params.append('location_id', location);
+            params.append('limit', pageSize);
+            params.append('page', currentPage);
 
             const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, { credentials: 'include' });
-            const items = await response.json();
+            const data = await response.json();
+            displayResults(data.items, resultsContainer);
+            const totalPages = Math.ceil(data.total / pageSize);
             
-            displayResults(items, resultsContainer);
         } catch (error) {
             console.error('Error fetching search results:', error);
             resultsContainer.innerHTML = '<p style="color: red;">Failed to load results. Is the backend running?</p>';
