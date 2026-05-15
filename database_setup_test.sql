@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS items (
     reporter_user_code VARCHAR(15),
     file_path VARCHAR(255),
     date_reported DATETIME DEFAULT CURRENT_TIMESTAMP,
+    close_at DATETIME,
     FOREIGN KEY (category_code) REFERENCES categories(category_code) ON DELETE SET NULL,
     FOREIGN KEY (branch_code) REFERENCES branches(branch_code) ON DELETE SET NULL,
     FOREIGN KEY (location_code) REFERENCES locations(location_code) ON DELETE SET NULL,
@@ -313,23 +314,23 @@ SELECT branch_code, NAME FROM branches ORDER BY NAME;
 -- 9
 DROP VIEW IF EXISTS vw_locations;
 CREATE VIEW vw_locations AS
-SELECT location_code, NAME FROM locations ORDER BY NAME
+SELECT location_code, NAME FROM locations ORDER BY NAME;
 -- SELECT * FROM vw_locations;
 
 -- 10
+DROP VIEW IF EXISTS vw_userLogin;
+CREATE VIEW vw_userLogin AS
+SELECT user_id, user_code, user_role, username, PASSWORD
+FROM users;
+-- SELECT * FROM vw_userLogin;
+
+-- 11
 DROP VIEW IF EXISTS vw_branchLocations;
 CREATE VIEW vw_branchLocations AS
 SELECT bl.branch_code AS `branch_code`, l.location_code, l.NAME AS `NAME`
 FROM locations l
 JOIN branchLocations bl ON l.location_code = bl.location_code;
 -- SELECT * FROM vw_branchLocations WHERE branch_code = 'BRH0001' ORDER BY NAME;
-
--- 11
-DROP VIEW IF EXISTS vw_userLogin;
-CREATE VIEW vw_userLogin AS
-SELECT user_id, user_code, user_role, username, PASSWORD
-FROM users;
--- SELECT * FROM vw_userLogin;
 
 
 -- Create Stored Procedures
@@ -508,6 +509,38 @@ FOR EACH ROW
 BEGIN
     IF NEW.log_code IS NULL THEN
         SET NEW.log_code = fn_generate_id('logs');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 8
+DROP TRIGGER IF EXISTS trg_set_close_date;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_set_close_date
+BEFORE INSERT ON items
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'open' THEN
+        SET NEW.close_at = DATE_ADD(NOW(), INTERVAL 14 DAY);
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 9
+DROP TRIGGER IF EXISTS trg_reset_close_date;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_reset_close_date
+BEFORE UPDATE ON items
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'open' AND OLD.status <> 'open' THEN
+        SET NEW.close_at = DATE_ADD(NOW(), INTERVAL 14 DAY);
     END IF;
 END$$
 
@@ -968,6 +1001,26 @@ END$$
 
 DELIMITER ;
 
+
+-- Create Events
+
+SET GLOBAL event_scheduler = OFF;
+SET GLOBAL event_scheduler = ON;
+
+-- 1
+DELIMITER $$
+
+CREATE EVENT ev_auto_close_items
+ON SCHEDULE EVERY 1 HOUR
+DO
+BEGIN
+    UPDATE items
+    SET STATUS = 'closed'
+    WHERE STATUS = 'open'
+      AND close_at <= NOW();
+END$$
+
+DELIMITER ;
 
 
 -- Insert Into Statements

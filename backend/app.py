@@ -297,7 +297,7 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # ONLY search by username
+        #ONLY search by username
         query = """
             SELECT * FROM vw_userLogin
             WHERE username = %s
@@ -306,6 +306,8 @@ def login():
         cursor.execute(query, (username,))
         user = cursor.fetchone()
 
+        print(user)
+        
         # Check if user exists AND password hash matches
         if user and bcrypt.check_password_hash(user['password'], password):
 
