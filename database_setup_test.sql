@@ -6,55 +6,6 @@ DROP USER IF EXISTS 'gapangita_user'@'localhost';
 DROP DATABASE IF EXISTS gapangita_db_test;
 CREATE DATABASE IF NOT EXISTS gapangita_db_test;
 
--- DCL Statements
-
--- User
-CREATE USER 'viewer_user'@'localhost'
-IDENTIFIED BY 'Viewer123!';
-
-GRANT SELECT ON gapangita_db_test.* TO 'viewer_user'@'localhost';
-FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'viewer_user'@'localhost';
-
--- Staff
-CREATE USER 'staff_user'@'localhost'
-IDENTIFIED BY 'Staff123!';
-
-GRANT SELECT ON gapangita_db_test.vw_categories TO 'staff_user'@'localhost';
-GRANT SELECT ON gapangita_db_test.vw_branches TO 'staff_user'@'localhost';
-GRANT SELECT ON gapangita_db_test.vw_locations TO 'staff_user'@'localhost';
-GRANT SELECT ON gapangita_db_test.vw_branchLocations TO 'staff_user'@'localhost';
-
-GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'staff_user'@'localhost';
-
-FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'staff_user'@'localhost';
-
--- Admin
-CREATE USER 'admin_user'@'localhost'
-IDENTIFIED BY 'Admin123!';
-
-GRANT SELECT ON gapangita_db_test.* TO 'admin_user'@'localhost';
-GRANT INSERT, UPDATE ON gapangita_db_test.users TO 'admin_user'@'localhost';
-GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'admin_user'@'localhost';
-GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.categories TO 'admin_user'@'localhost';
-GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branches TO 'admin_user'@'localhost';
-GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.locations TO 'admin_user'@'localhost';
-GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branchLocations TO 'admin_user'@'localhost';
-
-FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'admin_user'@'localhost';
-
--- Super Admin (gapangita_user)
-CREATE USER 'gapangita_user'@'localhost'
-IDENTIFIED BY 'Gapangita_Secure_123!';
-
-GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
--- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
--- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
-FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'gapangita_user'@'localhost';
-
 USE gapangita_db_test;
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -1140,3 +1091,53 @@ INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) 
 ('Admin', 'Admin', 'admin@gapangita.local', 'Admin', '0000000001');
 -- ('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
 -- ('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
+
+
+-- DCL Statements
+
+-- User
+CREATE USER 'viewer_user'@'localhost'
+IDENTIFIED BY 'Viewer123!';
+
+GRANT SELECT ON gapangita_db_test.* TO 'viewer_user'@'localhost';
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'viewer_user'@'localhost';
+
+-- Staff
+CREATE USER 'staff_user'@'localhost'
+IDENTIFIED BY 'Staff123!';
+
+GRANT SELECT ON gapangita_db_test.vw_categories TO 'staff_user'@'localhost';
+GRANT SELECT ON gapangita_db_test.vw_branches TO 'staff_user'@'localhost';
+GRANT SELECT ON gapangita_db_test.vw_locations TO 'staff_user'@'localhost';
+GRANT SELECT ON gapangita_db_test.vw_branchLocations TO 'staff_user'@'localhost';
+
+GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'staff_user'@'localhost';
+
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'staff_user'@'localhost';
+
+-- Admin
+CREATE USER 'admin_user'@'localhost'
+IDENTIFIED BY 'Admin123!';
+
+GRANT SELECT ON gapangita_db_test.* TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE ON gapangita_db_test.users TO 'admin_user'@'localhost';
+GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.categories TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branches TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.locations TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branchLocations TO 'admin_user'@'localhost';
+
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'admin_user'@'localhost';
+
+-- Super Admin (gapangita_user)
+CREATE USER 'gapangita_user'@'localhost'
+IDENTIFIED BY 'Gapangita_Secure_123!';
+
+GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
+-- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
+-- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'gapangita_user'@'localhost';
