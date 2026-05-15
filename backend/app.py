@@ -208,6 +208,14 @@ def search_openItems():
 
     limit = request.args.get('limit', 15, type=int)
     page = request.args.get('page', 1, type=int)
+
+    # Prevent invalid pagination values
+    if limit < 1:
+        limit = 15
+
+    if page < 1:
+        page = 1
+
     offset = (page - 1) * limit
 
     category_id = request.args.get('category_id', '')

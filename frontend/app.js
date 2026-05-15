@@ -102,14 +102,14 @@ function initSearchAndFilters() {
 
     function syncPaginationUI() {
         const pagination = document.getElementById('pages');
-        const totalPages = Math.ceil(lastTotal / pageSize) || 0;
+        const totalPages = Math.max(1, Math.ceil(lastTotal / pageSize));
 
         if (lastTotal === 0 || totalPages <= 1) {
             pagination.style.display = 'none';
             return;
         }
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
+        if (currentPage > 1) {
+            currentPage = 1;
         }
 
         pagination.style.display = 'flex';
