@@ -42,7 +42,18 @@
                 </div>
             </div>
 
-            <p class="helper-text">Use both filters to narrow down your results faster.</p>
+            <div class="search-header-2">
+                <div class="search-title-group">
+                    <p>Use both filters to narrow down your results faster.</p>
+                </div>
+
+                <div class="page-pill">
+                    <span class="page-pill__track"></span>
+                    <button class="page-btn active">15</button>
+                    <button class="page-btn">30</button>
+                    <button class="page-btn">60</button>
+                </div>
+            </div>
     
             <div class="form-group">
                 <h3>Item Name</h3>
@@ -85,6 +96,11 @@
 
             <div id="resultsContainer" class="results-grid">
                 <p>Start typing or select a filter to search...</p>
+            </div>
+            <div id="pages" class="result-grid">
+                <button id="prevPage">Prev </button>
+                <span id="pageNumber"> 1 </span>
+                <button id="nextPage"> Next</button>
             </div>
         </section>
     </div>

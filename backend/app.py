@@ -197,22 +197,16 @@ def search_openItems():
     q = request.args.get('q', '').strip()
     filter_itemType = request.args.get('filter', '').lower()
 
+    limit = request.args.get('limit', 15, type=int)
+    page = request.args.get('page', 1, type=int)
+    offset = (page - 1) * limit
+
     category_id = request.args.get('category_id', '')
     branch_id = request.args.get('branch_id', '')
     location_id = request.args.get('location_id', '')
     
-    if not name_q and q:
-        name_q = q
-    if not desc_q and q:
-        desc_q = q
-
-    if (not name_q and
-        not desc_q and
-        not category_id and
-        not branch_id and
-        not location_id):
-
-        return jsonify([])
+    if (not name_q and not desc_q and not category_id and not branch_id and not location_id):
+        return jsonify({'items': [], 'total': 0, 'page': page, 'limit': limit})
 
     view_name = 'vw_openAllItems'
     if filter_itemType == 'lost':
@@ -224,24 +218,42 @@ def search_openItems():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        query = f"SELECT * FROM {view_name} WHERE 1=1"
+        base_query = f"SELECT * FROM {view_name} WHERE 1=1"
+        count_query = f"SELECT COUNT(*) as total FROM {view_name} WHERE 1=1"
+
         params = []
+        count_params = []
 
-        # Dropdown filters
-        if category_id != '':
-            query += " AND category_code = %s"
+        # filters
+        if category_id:
+            base_query += " AND category_code = %s"
+            count_query += " AND category_code = %s"
             params.append(category_id)
+            count_params.append(category_id)
 
-        if branch_id != '':
-            query += " AND branch_code = %s"
+        if branch_id:
+            base_query += " AND branch_code = %s"
+            count_query += " AND branch_code = %s"
             params.append(branch_id)
+            count_params.append(branch_id)
 
-        if location_id != '':
-            query += " AND location_code = %s"
+        if location_id:
+            base_query += " AND location_code = %s"
+            count_query += " AND location_code = %s"
             params.append(location_id)
+            count_params.append(location_id)
 
-        cursor.execute(query, params)
+        # total count (NO LIMIT!)
+        cursor.execute(count_query, count_params)
+        total = cursor.fetchone()['total']
+
+        # pagination
+        base_query += " LIMIT %s OFFSET %s"
+        params.extend([limit, offset])
+
+        cursor.execute(base_query, params)
         items = cursor.fetchall()
+
         
         # Apply Levenshtein distance and convert to percentage similarity
         for item in items:
@@ -269,7 +281,12 @@ def search_openItems():
         # Sort by relevance (higher percentage is better)
         items.sort(key=lambda x: x['relevance'], reverse=True)
         
-        return jsonify(items)
+        return jsonify({
+            "items": items,
+            "total": total,
+            "page": page,
+            "limit": limit
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -307,7 +324,7 @@ def login():
         user = cursor.fetchone()
 
         print(user)
-        
+
         # Check if user exists AND password hash matches
         if user and bcrypt.check_password_hash(user['password'], password):
 
