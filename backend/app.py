@@ -78,11 +78,19 @@ def get_categories():
 
         cursor.execute("SELECT * FROM vw_categories")
         rows = cursor.fetchall()
+
         return jsonify(rows)
+    
+    except Exception:
+        app.logger.exception('Unexpected Error in get_categories')
+        return jsonify({'error': 'Internal Server Error'}), 500
 
     finally:
-        cursor.close()
-        conn.close()
+        if 'cursor' in locals():
+            cursor.close()
+
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
 
 @app.route('/api/branches', methods=['GET'])
 def get_branches():
@@ -93,10 +101,17 @@ def get_branches():
         cursor.execute("SELECT * FROM vw_branches")
         rows = cursor.fetchall()
         return jsonify(rows)
+    
+    except Exception:
+        app.logger.exception('Unexpected Error in get_branches')
+        return jsonify({'error': 'Internal Server Error'}), 500
 
     finally:
-        cursor.close()
-        conn.close()
+        if 'cursor' in locals():
+            cursor.close()
+
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
     
 
 @app.route('/api/locations', methods=['GET'])
@@ -108,10 +123,17 @@ def get_locations():
         cursor.execute("SELECT * FROM vw_locations")
         rows = cursor.fetchall()
         return jsonify(rows)
+    
+    except Exception:
+        app.logger.exception('Unexpected Error in get_locations')
+        return jsonify({'error': 'Internal Server Error'}), 500
 
     finally:
-        cursor.close()
-        conn.close()
+        if 'cursor' in locals():
+            cursor.close()
+
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
 
 @app.route('/api/locations/by-branch/<branch_code>', methods=['GET'])
 def get_locations_by_branch(branch_code):
@@ -128,10 +150,17 @@ def get_locations_by_branch(branch_code):
         cursor.execute(query, (branch_code,))
         rows = cursor.fetchall()
         return jsonify(rows)
+    
+    except Exception:
+        app.logger.exception('Unexpected Error in get_locations_by_branch')
+        return jsonify({'error': 'Internal Server Error'}), 500
 
     finally:
-        cursor.close()
-        conn.close()
+        if 'cursor' in locals():
+            cursor.close()
+
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
 
 @app.route('/api/items', methods=['POST'])
 def report_item():
@@ -191,11 +220,14 @@ def report_item():
         cursor.execute(query, values)
         conn.commit()
         return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        app.logger.exception('Unexpected Error in report_item')
+        return jsonify({'error': 'Internal Server Error'}), 500
+    
     finally:
         if 'cursor' in locals():
             cursor.close()
+
         if 'conn' in locals() and conn.is_connected():
             conn.close()
 
@@ -215,6 +247,9 @@ def search_openItems():
 
     if page < 1:
         page = 1
+
+    if limit > 60:
+        limit = 60
 
     offset = (page - 1) * limit
 
@@ -304,11 +339,14 @@ def search_openItems():
             "page": page,
             "limit": limit
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        app.logger.exception('Unexpected Error in search_openItems')
+        return jsonify({'error': 'Internal Server Error'}), 500
+    
     finally:
         if 'cursor' in locals():
             cursor.close()
+
         if 'conn' in locals() and conn.is_connected():
             conn.close()
 
@@ -340,7 +378,6 @@ def login():
         cursor.execute(query, (username,))
         user = cursor.fetchone()
 
-        print(user)
 
         # Check if user exists AND password hash matches
         if user:
@@ -352,7 +389,8 @@ def login():
                     break
 
             if not stored_pw:
-                return jsonify({'error': 'User record missing password field'}), 500
+                app.logger.error('Password field missing in vw_userLogin')
+                return jsonify({'error': 'Internal Server Error'}), 500
 
             if bcrypt.check_password_hash(stored_pw, password):
                 session.permanent = True
@@ -379,7 +417,8 @@ def login():
             'error': 'Invalid username or password'
         }), 401
 
-    except Exception as e:
+    except Exception:
+        app.logger.exception('Unexpected Error in login')
         return jsonify({'error': 'Internal Server Error'}), 500
 
     finally:
