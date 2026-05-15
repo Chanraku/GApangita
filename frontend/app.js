@@ -541,7 +541,7 @@ function formatDetails(item) {
         ${escapeHtml(item.description || 'No description provided.')}
 
         Date Reported:
-        ${new Date(item.date_reported).toLocaleString()}
+        ${formatWithoutTimezone(item.date_reported)}
     `;
 }
 
@@ -550,6 +550,16 @@ function showItemDetails(item) {
         title: 'Item Details',
         message: formatDetails(item)
     });
+}
+
+function formatWithoutTimezone(dateString) {
+    const date = new Date(dateString);
+
+    return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}, ${
+        date.getUTCHours() % 12 || 12
+    }:${String(date.getUTCMinutes()).padStart(2, '0')}:${
+        String(date.getUTCSeconds()).padStart(2, '0')
+    } ${date.getUTCHours() >= 12 ? 'PM' : 'AM'}`;
 }
 
 // Unsaved Changes Tracker
