@@ -19,7 +19,10 @@ app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 
 app.secret_key = 'super_secret_key_for_local_use' # Change this in production
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True,
+        origins=[
+            "*"
+        ])
 
 # Database connection configuration
 db_config = {
@@ -73,7 +76,7 @@ def get_categories():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT category_code, NAME FROM categories ORDER BY NAME")
+        cursor.execute("SELECT * FROM vw_categories")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -87,7 +90,7 @@ def get_branches():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT branch_code, NAME FROM branches ORDER BY NAME")
+        cursor.execute("SELECT * FROM vw_branches")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -102,7 +105,7 @@ def get_locations():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT location_code, NAME FROM locations ORDER BY NAME")
+        cursor.execute("SELECT * FROM vw_locations")
         rows = cursor.fetchall()
         return jsonify(rows)
 
@@ -117,11 +120,9 @@ def get_locations_by_branch(branch_code):
         cursor = conn.cursor(dictionary=True)
 
         query = """
-            SELECT l.location_code, l.NAME
-            FROM locations l
-            JOIN branchLocations bl ON l.location_code = bl.location_code
-            WHERE bl.branch_code = %s
-            ORDER BY l.NAME
+            SELECT * FROM vw_branchLocations
+            WHERE branch_code = %s
+            ORDER BY NAME;
         """
 
         cursor.execute(query, (branch_code,))
@@ -296,16 +297,17 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # ONLY search by username
+        #ONLY search by username
         query = """
-            SELECT user_id, user_code, user_role, username, password
-            FROM users
+            SELECT * FROM vw_userLogin
             WHERE username = %s
         """
 
         cursor.execute(query, (username,))
         user = cursor.fetchone()
 
+        print(user)
+        
         # Check if user exists AND password hash matches
         if user and bcrypt.check_password_hash(user['password'], password):
 

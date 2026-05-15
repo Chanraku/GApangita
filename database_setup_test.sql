@@ -1,15 +1,10 @@
+DROP USER IF EXISTS 'viewer_user'@'localhost';
+DROP USER IF EXISTS 'staff_user'@'localhost';
+DROP USER IF EXISTS 'admin_user'@'localhost';
 DROP USER IF EXISTS 'gapangita_user'@'localhost';
 
 DROP DATABASE IF EXISTS gapangita_db_test;
 CREATE DATABASE IF NOT EXISTS gapangita_db_test;
-
-CREATE USER 'gapangita_user'@'localhost'
-IDENTIFIED BY 'Gapangita_Secure_123!';
-
-GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
--- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
--- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
-FLUSH PRIVILEGES;
 
 USE gapangita_db_test;
 
@@ -66,6 +61,7 @@ CREATE TABLE IF NOT EXISTS items (
     reporter_user_code VARCHAR(15),
     file_path VARCHAR(255),
     date_reported DATETIME DEFAULT CURRENT_TIMESTAMP,
+    close_at DATETIME,
     FOREIGN KEY (category_code) REFERENCES categories(category_code) ON DELETE SET NULL,
     FOREIGN KEY (branch_code) REFERENCES branches(branch_code) ON DELETE SET NULL,
     FOREIGN KEY (location_code) REFERENCES locations(location_code) ON DELETE SET NULL,
@@ -118,10 +114,9 @@ SELECT
 	c.description AS `categoryDescription`,
 	i.branch_code,
 	b.name AS `branchName`,
-	c.description AS `branchDescription`,
 	i.location_code,
 	l.name AS `locationName`,
-	c.description AS `locationDescription`,
+	l.description AS `locationDescription`,
 	i.reporter_user_code,
 	u.username AS `reporter_username`,
 	i.file_path,
@@ -150,10 +145,12 @@ SELECT
 	i.STATUS AS `status`,
 	i.category_code,
 	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
 	i.branch_code,
 	b.name AS `branchName`,
 	i.location_code,
 	l.name AS `locationName`,
+	l.description AS `locationDescription`,
 	i.reporter_user_code,
 	u.username AS `reporter_username`,
 	i.file_path,
@@ -182,10 +179,12 @@ SELECT
 	i.STATUS AS `status`,
 	i.category_code,
 	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
 	i.branch_code,
 	b.name AS `branchName`,
 	i.location_code,
 	l.name AS `locationName`,
+	l.description AS `locationDescription`,
 	i.reporter_user_code,
 	u.username AS `reporter_username`,
 	i.file_path,
@@ -214,10 +213,12 @@ SELECT
 	i.STATUS AS `status`,
 	i.category_code,
 	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
 	i.branch_code,
 	b.name AS `branchName`,
 	i.location_code,
 	l.name AS `locationName`,
+	l.description AS `locationDescription`,
 	i.reporter_user_code,
 	u.username AS `reporter_username`,
 	i.file_path,
@@ -246,10 +247,12 @@ SELECT
 	i.STATUS AS `status`,
 	i.category_code,
 	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
 	i.branch_code,
 	b.name AS `branchName`,
 	i.location_code,
 	l.name AS `locationName`,
+	l.description AS `locationDescription`,
 	i.reporter_user_code,
 	u.username AS `reporter_username`,
 	i.file_path,
@@ -278,10 +281,12 @@ SELECT
 	i.STATUS AS `status`,
 	i.category_code,
 	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
 	i.branch_code,
 	b.name AS `branchName`,
 	i.location_code,
 	l.name AS `locationName`,
+	l.description AS `locationDescription`,
 	i.reporter_user_code,
 	u.username AS `reporter_username`,
 	i.file_path,
@@ -297,6 +302,39 @@ LEFT JOIN users AS u
 	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed' AND item_type = 'found';
 -- SELECT * FROM vw_closedFoundItems;
+
+-- 7
+DROP VIEW IF EXISTS vw_categories;
+CREATE VIEW vw_categories AS
+SELECT category_code, NAME FROM categories ORDER BY NAME;
+-- SELECT * FROM vw_categories;
+
+-- 8
+DROP VIEW IF EXISTS vw_branches;
+CREATE VIEW vw_branches AS
+SELECT branch_code, NAME FROM branches ORDER BY NAME;
+-- SELECT * FROM vw_branches;
+
+-- 9
+DROP VIEW IF EXISTS vw_locations;
+CREATE VIEW vw_locations AS
+SELECT location_code, NAME FROM locations ORDER BY NAME;
+-- SELECT * FROM vw_locations;
+
+-- 10
+DROP VIEW IF EXISTS vw_userLogin;
+CREATE VIEW vw_userLogin AS
+SELECT user_id, user_code, user_role, username, PASSWORD
+FROM users;
+-- SELECT * FROM vw_userLogin;
+
+-- 11
+DROP VIEW IF EXISTS vw_branchLocations;
+CREATE VIEW vw_branchLocations AS
+SELECT bl.branch_code AS `branch_code`, l.location_code, l.NAME AS `NAME`
+FROM locations l
+JOIN branchLocations bl ON l.location_code = bl.location_code;
+-- SELECT * FROM vw_branchLocations WHERE branch_code = 'BRH0001' ORDER BY NAME;
 
 
 -- Create Stored Procedures
@@ -475,6 +513,38 @@ FOR EACH ROW
 BEGIN
     IF NEW.log_code IS NULL THEN
         SET NEW.log_code = fn_generate_id('logs');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 8
+DROP TRIGGER IF EXISTS trg_set_close_date;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_set_close_date
+BEFORE INSERT ON items
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'open' THEN
+        SET NEW.close_at = DATE_ADD(NOW(), INTERVAL 14 DAY);
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 9
+DROP TRIGGER IF EXISTS trg_reset_close_date;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_reset_close_date
+BEFORE UPDATE ON items
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'open' AND OLD.status <> 'open' THEN
+        SET NEW.close_at = DATE_ADD(NOW(), INTERVAL 14 DAY);
     END IF;
 END$$
 
@@ -936,6 +1006,26 @@ END$$
 DELIMITER ;
 
 
+-- Create Events
+
+SET GLOBAL event_scheduler = OFF;
+SET GLOBAL event_scheduler = ON;
+
+-- 1
+DELIMITER $$
+
+CREATE EVENT ev_auto_close_items
+ON SCHEDULE EVERY 1 HOUR
+DO
+BEGIN
+    UPDATE items
+    SET STATUS = 'closed'
+    WHERE STATUS = 'open'
+      AND close_at <= NOW();
+END$$
+
+DELIMITER ;
+
 
 -- Insert Into Statements
 -- Insert some default categories
@@ -1001,3 +1091,53 @@ INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) 
 ('Admin', 'Admin', 'admin@gapangita.local', 'Admin', '0000000001');
 -- ('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
 -- ('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
+
+
+-- DCL Statements
+
+-- User
+CREATE USER 'viewer_user'@'localhost'
+IDENTIFIED BY 'Viewer123!';
+
+GRANT SELECT ON gapangita_db_test.* TO 'viewer_user'@'localhost';
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'viewer_user'@'localhost';
+
+-- Staff
+CREATE USER 'staff_user'@'localhost'
+IDENTIFIED BY 'Staff123!';
+
+GRANT SELECT ON gapangita_db_test.vw_categories TO 'staff_user'@'localhost';
+GRANT SELECT ON gapangita_db_test.vw_branches TO 'staff_user'@'localhost';
+GRANT SELECT ON gapangita_db_test.vw_locations TO 'staff_user'@'localhost';
+GRANT SELECT ON gapangita_db_test.vw_branchLocations TO 'staff_user'@'localhost';
+
+GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'staff_user'@'localhost';
+
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'staff_user'@'localhost';
+
+-- Admin
+CREATE USER 'admin_user'@'localhost'
+IDENTIFIED BY 'Admin123!';
+
+GRANT SELECT ON gapangita_db_test.* TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE ON gapangita_db_test.users TO 'admin_user'@'localhost';
+GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.categories TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branches TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.locations TO 'admin_user'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branchLocations TO 'admin_user'@'localhost';
+
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'admin_user'@'localhost';
+
+-- Super Admin (gapangita_user)
+CREATE USER 'gapangita_user'@'localhost'
+IDENTIFIED BY 'Gapangita_Secure_123!';
+
+GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
+-- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
+-- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'gapangita_user'@'localhost';
