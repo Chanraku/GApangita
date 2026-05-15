@@ -1085,12 +1085,60 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 ('BRH0002', 'LOC0010'),
 ('BRH0002', 'LOC0011');
 
--- Insert a default anonymous user
+-- Insert users
 INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) VALUES
 ('Admin', 'Admin123', 'admin@gapangita.local', '$2b$12$SIZ70qTKnwZoab81FHOXKeFHrL8zMbi8UokSp8q8elLVuL.gxYkMS', '0000000000'), -- Pass is Admin123
 ('Admin', 'Admin', 'admin@gapangita.local', 'Admin', '0000000001');
 -- ('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
 -- ('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
+
+-- Insert default items for testing
+INSERT INTO items (
+    NAME,
+    DESCRIPTION,
+    item_type,
+    STATUS,
+    category_code,
+    branch_code,
+    location_code,
+    reporter_user_code
+)
+SELECT
+    CONCAT(
+        c.NAME,
+        ' Item - ',
+        b.NAME,
+        ' - ',
+        l.NAME
+    ) AS NAME,
+
+    CONCAT(
+        'Seed item for category ',
+        c.NAME,
+        ', branch ',
+        b.NAME,
+        ', location ',
+        l.NAME
+    ) AS DESCRIPTION,
+
+    CASE
+        WHEN MOD(c.category_id, 2) = 0 THEN 'lost'
+        ELSE 'found'
+    END AS item_type,
+
+    'open' AS STATUS,
+
+    c.category_code,
+    b.branch_code,
+    l.location_code,
+
+    'USR0001' AS reporter_user_code   -- your Admin123 seeded user
+FROM categories c
+CROSS JOIN branches b
+JOIN branchLocations bl
+    ON bl.branch_code = b.branch_code
+JOIN locations l
+    ON l.location_code = bl.location_code;
 
 
 -- DCL Statements
