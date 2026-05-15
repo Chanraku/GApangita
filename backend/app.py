@@ -143,6 +143,15 @@ def report_item():
 
     data = request.json
 
+    # Never trust client for reporter identity. Use session user code.
+    reporter_code = session.get('user_code')
+    if not reporter_code:
+        return jsonify({'error': 'Unauthorized. Missing user information.'}), 401
+
+    # If client sent a reporter_user_id, log and ignore it
+    if isinstance(data, dict) and data.get('reporter_user_id'):
+        app.logger.warning('Ignored client-sent reporter_user_id: %s', data.get('reporter_user_id'))
+
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
     item_type = data.get('item_type', '').lower().strip()
@@ -176,7 +185,7 @@ def report_item():
         values = (
             data.get('name'), data.get('description'), data.get('item_type'),
             data.get('category_id'), data.get('branch_id'), data.get('location_id'),
-            session.get('user_code') # Use logged in user's code
+            reporter_code
         )
         
         cursor.execute(query, values)
@@ -326,34 +335,44 @@ def login():
         print(user)
 
         # Check if user exists AND password hash matches
-        if user and bcrypt.check_password_hash(user['password'], password):
+        if user:
+            # find the password-like field in the returned row safely
+            stored_pw = None
+            for key in user.keys():
+                if 'pass' in key.lower():
+                    stored_pw = user[key]
+                    break
 
-            session.permanent = True
+            if not stored_pw:
+                return jsonify({'error': 'User record missing password field'}), 500
 
-            session['user_id'] = user['user_id']
-            session['user_code'] = user['user_code']
-            session['user_role'] = user['user_role']
-            session['username'] = user['username']
-            csrf_token = secrets.token_hex(32)
-            session['csrf_token'] = csrf_token
+            if bcrypt.check_password_hash(stored_pw, password):
+                session.permanent = True
 
-            return jsonify({
-                'message': 'Logged in successfully',
-                'csrf_token': csrf_token,
-                'user': {
-                    'user_id': user['user_id'],
-                    'user_code': user['user_code'],
-                    'user_role': user['user_role'],
-                    'username': user['username']
-                }
-            }), 200
+                session['user_id'] = user['user_id']
+                session['user_code'] = user['user_code']
+                session['user_role'] = user['user_role']
+                session['username'] = user['username']
+                csrf_token = secrets.token_hex(32)
+                session['csrf_token'] = csrf_token
+
+                return jsonify({
+                    'message': 'Logged in successfully',
+                    'csrf_token': csrf_token,
+                    'user': {
+                        'user_id': user['user_id'],
+                        'user_code': user['user_code'],
+                        'user_role': user['user_role'],
+                        'username': user['username']
+                    }
+                }), 200
 
         return jsonify({
             'error': 'Invalid username or password'
         }), 401
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
     finally:
         if 'cursor' in locals():
