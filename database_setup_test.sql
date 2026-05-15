@@ -298,6 +298,39 @@ LEFT JOIN users AS u
 WHERE STATUS = 'closed' AND item_type = 'found';
 -- SELECT * FROM vw_closedFoundItems;
 
+-- 7
+DROP VIEW IF EXISTS vw_categories;
+CREATE VIEW vw_categories AS
+SELECT category_code, NAME FROM categories ORDER BY NAME;
+-- SELECT * FROM vw_categories;
+
+-- 8
+DROP VIEW IF EXISTS vw_branches;
+CREATE VIEW vw_branches AS
+SELECT branch_code, NAME FROM branches ORDER BY NAME;
+-- SELECT * FROM vw_branches;
+
+-- 9
+DROP VIEW IF EXISTS vw_locations;
+CREATE VIEW vw_locations AS
+SELECT location_code, NAME FROM locations ORDER BY NAME
+-- SELECT * FROM vw_locations;
+
+-- 10
+DROP VIEW IF EXISTS vw_branchLocations;
+CREATE VIEW vw_branchLocations AS
+SELECT bl.branch_code AS `branch_code`, l.location_code, l.NAME AS `NAME`
+FROM locations l
+JOIN branchLocations bl ON l.location_code = bl.location_code;
+-- SELECT * FROM vw_branchLocations WHERE branch_code = 'BRH0001' ORDER BY NAME;
+
+-- 11
+DROP VIEW IF EXISTS vw_userLogin;
+CREATE VIEW vw_userLogin AS
+SELECT user_id, user_code, user_role, username, PASSWORD
+FROM users;
+-- SELECT * FROM vw_userLogin;
+
 
 -- Create Stored Procedures
 -- 1
