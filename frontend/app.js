@@ -83,6 +83,7 @@ function initSearchAndFilters() {
 
         runSearch();
     });
+    
 
     function updatePageUI() {
         const totalPages = Math.ceil(lastTotal / pageSize) || 1;
@@ -98,6 +99,16 @@ function initSearchAndFilters() {
         } else {
             pagination.style.display = 'flex';
         }
+    }
+
+    const initialPageActive =
+    document.querySelector('.page-btn.active') ||
+    document.querySelector('.page-btn');
+
+    if (initialPageActive) {
+        requestAnimationFrame(() => {
+            positionPageTrack(initialPageActive);
+        });
     }
 
     function syncPaginationUI() {
