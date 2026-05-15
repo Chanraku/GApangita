@@ -297,17 +297,11 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
+        # ONLY search by username
         query = """
-            SELECT user_id, user_code, user_role, username, password
-            FROM users
+            SELECT * FROM vw_userLogin
             WHERE username = %s
         """
-
-        # ONLY search by username
-        #query = """
-        #    SELECT * FROM vw_userLogin
-        #    WHERE username = %s
-        #"""
 
         cursor.execute(query, (username,))
         user = cursor.fetchone()
