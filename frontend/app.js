@@ -7,6 +7,7 @@ const locationSelect = document.getElementById('locationId');
 
 let pageSize = 15;
 let currentPage = 1;
+let lastTotal = 0;
 
 let isFormDirty = false;
 let isHandlingModalNavigation = false;
@@ -79,8 +80,38 @@ function initSearchAndFilters() {
     });
 
     function updatePageUI() {
+        const totalPages = Math.ceil(lastTotal / pageSize) || 1;
+
         pageNumberEl.textContent = currentPage;
-        prevBtn.disabled = currentPage === 1;
+        prevBtn.disabled = currentPage <= 1;
+        nextBtn.disabled = currentPage >= totalPages;
+
+        const pagination = document.getElementById('pages');
+
+        if (lastTotal === 0 || totalPages <= 1) {
+            pagination.style.display = 'none';
+        } else {
+            pagination.style.display = 'flex';
+        }
+    }
+
+    function syncPaginationUI() {
+        const pagination = document.getElementById('pages');
+        const totalPages = Math.ceil(lastTotal / pageSize) || 0;
+
+        if (lastTotal === 0 || totalPages <= 1) {
+            pagination.style.display = 'none';
+            return;
+        }
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        pagination.style.display = 'flex';
+
+        pageNumberEl.textContent = currentPage;
+        prevBtn.disabled = currentPage <= 1;
+        nextBtn.disabled = currentPage >= totalPages;
     }
 
     prevBtn?.addEventListener('click', () => {
@@ -92,9 +123,13 @@ function initSearchAndFilters() {
     });
 
     nextBtn?.addEventListener('click', () => {
-        currentPage++;
-        updatePageUI();
-        runSearch();
+        const totalPages = Math.ceil(lastTotal / pageSize);
+
+        if (currentPage < totalPages) {
+            currentPage++;
+            updatePageUI();
+            runSearch();
+        }
     });
 
     const runSearch = debounce(async () => {
@@ -134,18 +169,40 @@ function initSearchAndFilters() {
 
             const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, { credentials: 'include' });
             const data = await response.json();
+
+            lastTotal = data.total;
+            const totalPages = Math.ceil(data.total / pageSize) || 0;
+
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
+
             displayResults(data.items, resultsContainer);
-            const totalPages = Math.ceil(data.total / pageSize);
+            updatePageUI();
+            syncPaginationUI();
+
+            const pagination = document.getElementById('pages');
             
         } catch (error) {
             console.error('Error fetching search results:', error);
             resultsContainer.innerHTML = '<p style="color: red;">Failed to load results. Is the backend running?</p>';
         }
     }, 300);
-    
-    categorySelect?.addEventListener('change', runSearch);
-    branchSelect?.addEventListener('change', runSearch);
-    locationSelect?.addEventListener('change', runSearch);
+
+    categorySelect.addEventListener('change', () => {
+        currentPage = 1;
+        runSearch();
+    });
+
+    branchSelect.addEventListener('change', () => {
+        currentPage = 1;
+        runSearch();
+    });
+
+    locationSelect.addEventListener('change', () => {
+        currentPage = 1;
+        runSearch();
+    });
 
     if (filterButtons.length > 0) {
         filterButtons.forEach(button => {
@@ -170,13 +227,14 @@ function initSearchAndFilters() {
         });
     }
 
-    if (searchInput) {
-        searchInput.addEventListener('input', runSearch);
-    }
-
-    if (searchDescInput) {
-        searchDescInput.addEventListener('input', runSearch);
-    }
+    searchInput.addEventListener('input', () => {
+        currentPage = 1;
+        runSearch();
+    });
+    searchDescInput.addEventListener('input', () => {
+        currentPage = 1;
+        runSearch();
+    });
 }
 
 function displayResults(items, resultsContainer) {
