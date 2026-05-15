@@ -1,9 +1,9 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 const SAFE_ITEM_TYPES = ['lost', 'found'];
 
-const categorySelect = document.getElementById('categoryId');
-const branchSelect = document.getElementById('branchId');
-const locationSelect = document.getElementById('locationId');
+let categorySelect = null;
+let branchSelect = null;
+let locationSelect = null;
 
 let pageSize = 15;
 let currentPage = 1;
@@ -14,6 +14,11 @@ let isHandlingModalNavigation = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    // Query DOM elements after page loads
+    categorySelect = document.getElementById('categoryId');
+    branchSelect = document.getElementById('branchId');
+    locationSelect = document.getElementById('locationId');
+    
     checkAuth();
     initSearchAndFilters();
 
@@ -189,17 +194,17 @@ function initSearchAndFilters() {
         }
     }, 300);
 
-    categorySelect.addEventListener('change', () => {
+    categorySelect?.addEventListener('change', () => {
         currentPage = 1;
         runSearch();
     });
 
-    branchSelect.addEventListener('change', () => {
+    branchSelect?.addEventListener('change', () => {
         currentPage = 1;
         runSearch();
     });
 
-    locationSelect.addEventListener('change', () => {
+    locationSelect?.addEventListener('change', () => {
         currentPage = 1;
         runSearch();
     });
