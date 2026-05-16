@@ -9,6 +9,8 @@ let pageSize = 15;
 let currentPage = 1;
 let lastTotal = 0;
 
+let runSearch = null;
+
 let isFormDirty = false;
 let isHandlingModalNavigation = false;
 
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCategories();
     await loadBranches();
 
-    initBranchLocationFilter();
+    initBranchLocationFilter(runSearch);
     initUnsavedChangesTracker();
 });
 
@@ -150,7 +152,7 @@ function initSearchAndFilters() {
         }
     });
 
-    const runSearch = debounce(async () => {
+    runSearch = debounce(async () => {
         if (!resultsContainer || !searchInput) return;
 
         const query = searchInput?.value.trim() || '';
@@ -211,11 +213,6 @@ function initSearchAndFilters() {
     }, 300);
 
     categorySelect?.addEventListener('change', () => {
-        currentPage = 1;
-        runSearch();
-    });
-
-    branchSelect?.addEventListener('change', () => {
         currentPage = 1;
         runSearch();
     });
@@ -348,7 +345,7 @@ async function loadBranches() {
     });
 }
 
-function initBranchLocationFilter() {
+function initBranchLocationFilter(runSearch) {
     const branchSelect = document.getElementById('branchId');
     if (!branchSelect) return;
 
@@ -362,15 +359,19 @@ function initBranchLocationFilter() {
     branchSelect.addEventListener('change', async function () {
         const branchCode = this.value;
 
-        // reset selected location value when branch changes
-        locationSelect.value = '';
         currentPage = 1;
+
+        locationSelect.innerHTML =
+                `<option value="" selected>None</option>`;
+
+        locationSelect.value = '';
 
         // No branch selected
         if (!branchCode) {
             locationSelect.disabled = true;
-            locationSelect.innerHTML =
-                `<option value="" selected disabled>Select Branch first...</option>`;
+            
+            runSearch();
+
             return;
         }
 
@@ -397,6 +398,8 @@ function initBranchLocationFilter() {
             });
 
             locationSelect.disabled = false;
+
+            runSearch();
 
         } catch (err) {
             console.error(err);
