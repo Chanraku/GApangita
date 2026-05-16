@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     await checkAuth();
     if (document.getElementById('searchInput')) {
-    initSearchAndFilters();
+    runSearch = initSearchAndFilters();
     }
 
     await loadCategories();
@@ -98,6 +98,8 @@ function initSearchAndFilters() {
 
         const pagination = document.getElementById('pages');
 
+        if(!pagination) return;
+
         if (lastTotal === 0 || totalPages <= 1) {
             pagination.style.display = 'none';
         } else {
@@ -118,6 +120,8 @@ function initSearchAndFilters() {
     function syncPaginationUI() {
         const pagination = document.getElementById('pages');
         const totalPages = Math.max(1, Math.ceil(lastTotal / pageSize));
+
+        if(!pagination) return;
 
         if (lastTotal === 0 || totalPages <= 1) {
             pagination.style.display = 'none';
@@ -253,6 +257,8 @@ function initSearchAndFilters() {
         currentPage = 1;
         runSearch();
     });
+
+    return runSearch;
 }
 
 function displayResults(items, resultsContainer) {
@@ -370,7 +376,9 @@ function initBranchLocationFilter(runSearch) {
         if (!branchCode) {
             locationSelect.disabled = true;
             
-            runSearch();
+            if (typeof runSearch === 'function') {
+                runSearch();
+                }
 
             return;
         }
@@ -399,7 +407,9 @@ function initBranchLocationFilter(runSearch) {
 
             locationSelect.disabled = false;
 
-            runSearch();
+            if (typeof runSearch === 'function') {
+                runSearch();
+            }
 
         } catch (err) {
             console.error(err);
