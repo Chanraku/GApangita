@@ -1,24 +1,28 @@
 from flask import Flask, request, jsonify, session
 from flask_bcrypt import Bcrypt
 from datetime import timedelta
+from dotenv import load_dotenv
 import mysql.connector
 from flask_cors import CORS
+import os
 import re
 import secrets
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 app.permanent_session_lifetime = timedelta(hours=2)
 
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE') == 'True'
+app.config['SESSION_COOKIE_HTTPONLY'] = os.getenv('SESSION_COOKIE_HTTPONLY') == 'True'
+app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE')
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 
-# Change to True in HTTPS production
-app.config['SESSION_COOKIE_SECURE'] = False
 
-app.secret_key = 'super_secret_key_for_local_use' # Change this in production
+app.secret_key = os.getenv('SECRET_KEY')  # Change this in production
 CORS(app, supports_credentials=True,
         origins=[
             "*"
@@ -26,10 +30,10 @@ CORS(app, supports_credentials=True,
 
 # Database connection configuration
 db_config = {
-    'host': 'localhost',
-    'user': 'gapangita_user',
-    'password': 'Gapangita_Secure_123!',
-    'database': 'gapangita_db_test'
+    'host': os.getenv('DB_HOST'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'database': os.getenv('DB_NAME')
 }
 
 MAX_DESCRIPTION_LENGTH = 1000
@@ -455,4 +459,7 @@ def auth_status():
     return jsonify({'is_authenticated': False}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(
+    debug=os.getenv('FLASK_DEBUG') == 'True',
+    port=int(os.getenv('FLASK_PORT', 5000))
+    )

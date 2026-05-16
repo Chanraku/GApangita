@@ -19,8 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     branchSelect = document.getElementById('branchId');
     locationSelect = document.getElementById('locationId');
     
-    checkAuth();
+    await checkAuth();
+    if (document.getElementById('searchInput')) {
     initSearchAndFilters();
+    }
 
     await loadCategories();
     await loadBranches();
@@ -119,8 +121,8 @@ function initSearchAndFilters() {
             pagination.style.display = 'none';
             return;
         }
-        if (currentPage > 1) {
-            currentPage = 1;
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
         }
 
         pagination.style.display = 'flex';
@@ -168,6 +170,9 @@ function initSearchAndFilters() {
             resultsContainer.innerHTML =
                 '<p>Type at least 2 characters or choose a filter.</p>';
 
+            lastTotal = 0;
+            updatePageUI();
+            
             return;
         }
 
@@ -302,10 +307,16 @@ function displayResults(items, resultsContainer) {
 }
 
 async function loadCategories() {
-    const res = await fetch(`${API_BASE_URL}/categories`);
-    const data = await res.json();
 
     const select = document.getElementById('categoryId');
+    if (!select) return;
+
+    const res = await fetch(`${API_BASE_URL}/categories`, {
+        credentials: 'include'
+    });
+
+    const data = await res.json();
+
     select.innerHTML = `<option value="" selected>None</option>`;
 
     data.forEach(cat => {
@@ -317,10 +328,16 @@ async function loadCategories() {
 }
 
 async function loadBranches() {
-    const res = await fetch(`${API_BASE_URL}/branches`);
-    const data = await res.json();
 
     const select = document.getElementById('branchId');
+    if (!select) return;
+    
+    const res = await fetch(`${API_BASE_URL}/branches`, {
+        credentials: 'include'
+        });
+
+    const data = await res.json();
+
     select.innerHTML = `<option value="" selected>None</option>`;
 
     data.forEach(branch => {
@@ -344,6 +361,10 @@ function initBranchLocationFilter() {
 
     branchSelect.addEventListener('change', async function () {
         const branchCode = this.value;
+
+        // reset selected location value when branch changes
+        locationSelect.value = '';
+        currentPage = 1;
 
         // No branch selected
         if (!branchCode) {
@@ -398,7 +419,6 @@ if (reportForm) {
             category_id: document.getElementById('categoryId').value,
             branch_id: document.getElementById('branchId').value,
             location_id: document.getElementById('locationId').value,
-            reporter_user_id: 'USR0001', // Automatically set reporter ID
             description: document.getElementById('itemDescription').value
         };
         
