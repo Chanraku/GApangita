@@ -64,17 +64,27 @@
 
                     <div class="camera-section">
 
-                        <button type="button" id="openCameraBtn" class="btn">
-                            Open Camera
-                        </button>
+                        <button type="button" id="openItemCameraBtn" class="btn"> Open Item Camera </button>
 
-                        <button type="button" id="captureBtn" class="btn">
-                            Capture Image
-                        </button>
+                        <button type="button" id="captureItemBtn" class="btn"> Capture Item Image </button>
 
-                        <video id="cameraFeed" autoplay playsinline></video>
+                        <video id="itemCameraFeed" autoplay playsinline></video>
 
-                        <canvas id="snapshotCanvas"></canvas>
+                        <canvas id="itemSnapshotCanvas"></canvas>
+
+                    </div>
+
+                    <h3> Capture Reporter Image </h3>
+
+                    <div class="camera-section">
+
+                        <button type="button" id="openUserCameraBtn" class="btn"> Open User Camera </button>
+
+                        <button type="button" id="captureUserBtn" class="btn"> Capture User Image </button>
+
+                        <video id="userCameraFeed" autoplay playsinline></video>
+
+                        <canvas id="userSnapshotCanvas"></canvas>
 
                     </div>
 
@@ -90,23 +100,32 @@
                     <li>Ensure you select the correct category.</li>
                 </ul>
 
-                <h2>Item Image Preview</h2>
-
                 <div class="image-preview-container">
 
-                    <img id="imagePreview" alt="Preview">
+                <h2>Item Image Preview</h2>
 
-                    <p id="previewPlaceholder">
-                        No image selected yet.
-                    </p>
+
+                <img id="itemImagePreview" alt="Preview" style = "display:none;">
+
+                <p id="itemPreviewPlaceholder"> No image selected yet. </p>
+
+                <br>
+
+                <button type="button" id="cancelItemImageBtn" class="btn"> Remove Image </button>
+
+                <h2>Reporter Image Preview</h2>
+
+                <img id="userImagePreview" alt="Preview" style = "display:none;">
+
+                <p id="userPreviewPlaceholder"> No image selected yet. </p>
+
+                <button type="button" id="cancelUserImageBtn" class="btn">
+                    Remove Image
+                </button>
 
                 </div>
 
                 <br>
-
-                <button type="button" id="cancelImageBtn" class="btn">
-                    Remove Image
-                </button>
                     
             </div>
         </div>
@@ -127,9 +146,15 @@
         </div>
     </div>
 
+
+    <script> 
+        let itemStream = null;
+        let userStream = null;
+    </script>
     <script src="app.js"></script>
     <script src="imagePreview.js"></script>
-    <script src="camera.js"></script>
+    <script src="itemCamera.js"></script>
+    <script src="userCamera.js"></script>
 
 </body>
 </html>
