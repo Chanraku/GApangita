@@ -286,6 +286,7 @@ function createItemCard(item) {
         const card = template.content.cloneNode(true);
 
         const root = card.querySelector('.item-card');
+        const cardImage = card.querySelector('.item-card__image');
 
         // safe type (optional badge)
         const safeType = SAFE_ITEM_TYPES.includes(item.item_type)
@@ -297,7 +298,11 @@ function createItemCard(item) {
 
         // IMAGE (this is what you wanted)
         card.querySelector('.item-card__image').src =
-            item.image_url || '/assets/placeholder.png';
+            cardImage.src = item.image_url || '/assets/placeholder.png';
+            cardImage.onerror = () => {
+                cardImage.onerror = null;
+                cardImage.src = '/assets/placeholder.png';
+            };
 
         // TITLE
         card.querySelector('.item-card__title').textContent =
@@ -736,7 +741,10 @@ function buildItemDetails(item) {
 
     const img = document.createElement('img');
     img.src = item.image_url || '/assets/placeholder.png';
-    img.onerror = () => { img.src = '/assets/placeholder.png';};
+    img.onerror = () => {
+        img.onerror = null; // prevents infinite loop of errors
+        img.src = '/assets/placeholder.png';
+        };
     img.alt = item.name || 'Item image';
     img.className = 'item-modal__image';
 
