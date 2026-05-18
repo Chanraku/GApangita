@@ -17,6 +17,17 @@ let isHandlingModalNavigation = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+
+    const resultsContainer = document.getElementById('resultsContainer');
+
+    resultsContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.item-card');
+        if (!card) return;
+
+        const item = JSON.parse(decodeURIComponent(card.dataset.item));
+        showItemDetails(item);
+    });
+
     // Query DOM elements after page loads
     categorySelect = document.getElementById('categoryId');
     branchSelect = document.getElementById('branchId');
@@ -270,53 +281,58 @@ function initSearchAndFilters() {
     }
 }
 
-function displayResults(items, resultsContainer) {
-    if (!items || items.length === 0) {
-        resultsContainer.innerHTML = '<p>No items found.</p>';
-        return;
-    }
+function createItemCard(item) {
+        const template = document.getElementById('item-card-template');
+        const card = template.content.cloneNode(true);
 
-    resultsContainer.innerHTML = items.map(item => {
+        const root = card.querySelector('.item-card');
+
+        // safe type (optional badge)
         const safeType = SAFE_ITEM_TYPES.includes(item.item_type)
             ? item.item_type
             : 'unknown';
 
-        return `
-            <div class="item-card" data-item='${JSON.stringify(item)}'>
-                <div class="item-card__header">
-                    <h3 class="item-card__title">${escapeHtml(item.name)}</h3>
+        // store full item for click handling
+        root.dataset.item = encodeURIComponent(JSON.stringify(item));
 
-                    <span class="item-card__badge item-card__badge--${safeType}">
-                        ${escapeHtml(safeType)}
-                    </span>
-                </div>
+        // IMAGE (this is what you wanted)
+        card.querySelector('.item-card__image').src =
+            item.image_url || '/assets/placeholder.png';
 
-                <p class="item-card__desc">
-                    ${escapeHtml(item.description || 'No description provided.')}
-                </p>
+        // TITLE
+        card.querySelector('.item-card__title').textContent =
+            item.name || 'Unnamed item';
 
-                <div class="item-card__meta" style="display:flex; justify-content:space-between;">
-                    <span>
-                        Name match:
-                        <strong>${item.name_relevance != null ? item.name_relevance + '%' : 'N/A'}</strong>
-                    </span>
+        // BADGE
+        const badge = card.querySelector('.item-card__badge');
+        badge.textContent = safeType;
+        badge.classList.add(`item-card__badge--${safeType}`);
 
-                    <span>
-                        Description match:
-                        <strong>${item.desc_relevance != null ? item.desc_relevance + '%' : 'N/A'}</strong>
-                    </span>
-                </div>
-            </div>
-        `;
-    }).join('');
+        // DESCRIPTION
+        card.querySelector('.item-card__desc').textContent =
+            item.description || 'No description provided.';
 
-    document.querySelectorAll('.item-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const item = JSON.parse(card.dataset.item);
-            showItemDetails(item);
-        });
-    });
-}
+        // META
+        card.querySelector('.name-match').innerHTML =
+            `Name match: <strong>${item.name_relevance != null ? item.name_relevance + '%' : 'N/A'}</strong>`;
+
+        card.querySelector('.desc-match').innerHTML =
+            `Description match: <strong>${item.desc_relevance != null ? item.desc_relevance + '%' : 'N/A'}</strong>`;
+
+        return card;
+    }
+
+function displayResults(items, resultsContainer) {
+    if (!items || items.length === 0) {
+        resultsContainer.innerHTML = '<p>No items found.</p>';
+        return;
+        }
+
+        resultsContainer.innerHTML = '';
+
+        const fragments = items.map(createItemCard);
+        resultsContainer.append(...fragments);
+    }
 
 async function loadCategories() {
     const res = await fetch(`${API_BASE_URL}/categories`);
@@ -644,11 +660,18 @@ const Modal = (() => {
         return {};
     }
 
-    function show({ title = '', message = '', type = 'alert', onConfirm = null }) {
+    function show({ title = '', message = '', node = null, type = 'alert', onConfirm = null }) {
+
         titleEl.textContent = title;
-        messageEl.textContent = message;
-        messageEl.innerHTML = message.replace(/\n/g, '<br>');
+
         footerEl.innerHTML = '';
+
+        if (node) {
+            messageEl.innerHTML = '';
+            messageEl.appendChild(node);
+        } else {
+            messageEl.innerHTML = (message || '').replace(/\n/g, '<br>');
+        }
 
         if (type === 'confirm') {
             const cancelBtn = document.createElement('button');
@@ -685,7 +708,7 @@ const Modal = (() => {
     }
 
     return { show, hide };
-})();
+    })();
 
 function formatDetails(item) {
     return `
@@ -707,10 +730,45 @@ function formatDetails(item) {
     `;
 }
 
+function buildItemDetails(item) {
+    const container = document.createElement('div');
+    container.className = 'item-modal';
+
+    const img = document.createElement('img');
+    img.src = item.image_url || '/assets/placeholder.png';
+    img.onerror = () => { img.src = '/assets/placeholder.png';};
+    img.alt = item.name || 'Item image';
+    img.className = 'item-modal__image';
+
+    const content = document.createElement('div');
+    content.className = 'item-modal__content';
+
+    content.innerHTML = `
+        <p><strong>Name:</strong> ${escapeHtml(item.name)}</p>
+        <p><strong>Status:</strong> ${escapeHtml(item.status || 'N/A')}</p>
+        <p><strong>Type:</strong> ${escapeHtml(item.item_type)}</p>
+
+        <p><strong>Category:</strong> ${escapeHtml(item.categoryName || 'N/A')}</p>
+        <p><strong>Branch:</strong> ${escapeHtml(item.branchName || 'N/A')}</p>
+        <p><strong>Location:</strong> ${escapeHtml(item.locationName || 'N/A')}</p>
+
+        <p><strong>Description:</strong><br>
+        ${escapeHtml(item.description || 'No description provided.')}</p>
+
+        <p><strong>Date Reported:</strong><br>
+        ${formatWithoutTimezone(item.date_reported)}</p>
+    `;
+
+    container.appendChild(img);
+    container.appendChild(content);
+
+    return container;
+}
+
 function showItemDetails(item) {
     Modal.show({
         title: 'Item Details',
-        message: formatDetails(item)
+        node: buildItemDetails(item)
     });
 }
 
