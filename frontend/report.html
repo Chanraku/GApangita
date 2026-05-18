@@ -60,9 +60,22 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="itemDescription">Description</label>
-                        <textarea id="itemDescription" class="form-textarea" rows="4" placeholder="Provide distinct features..." required></textarea>
+                    <h3> Capture Item Image </h3>
+
+                    <div class="camera-section">
+
+                        <button type="button" id="openCameraBtn" class="btn">
+                            Open Camera
+                        </button>
+
+                        <button type="button" id="captureBtn" class="btn">
+                            Capture Image
+                        </button>
+
+                        <video id="cameraFeed" autoplay playsinline></video>
+
+                        <canvas id="snapshotCanvas"></canvas>
+
                     </div>
 
                     <button type="submit" class="btn">Submit Report</button>
@@ -76,6 +89,25 @@
                     <li>Mention unique markings, brands, or colors.</li>
                     <li>Ensure you select the correct category.</li>
                 </ul>
+
+                <h2>Item Image Preview</h2>
+
+                <div class="image-preview-container">
+
+                    <img id="imagePreview" alt="Preview">
+
+                    <p id="previewPlaceholder">
+                        No image selected yet.
+                    </p>
+
+                </div>
+
+                <br>
+
+                <button type="button" id="cancelImageBtn" class="btn">
+                    Remove Image
+                </button>
+                    
             </div>
         </div>
     </div>
@@ -96,5 +128,8 @@
     </div>
 
     <script src="app.js"></script>
+    <script src="imagePreview.js"></script>
+    <script src="camera.js"></script>
+
 </body>
 </html>

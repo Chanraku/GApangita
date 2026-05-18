@@ -326,27 +326,38 @@ def login():
         print(user)
 
         # Check if user exists AND password hash matches
-        if user and bcrypt.check_password_hash(user['password'], password):
+        if user:
+            # find the password-like field in the returned row safely
+            stored_pw = None
+            for key in user.keys():
+                if 'pass' in key.lower():
+                    stored_pw = user[key]
+                    break
 
-            session.permanent = True
+            if not stored_pw:
+                app.logger.error('Password field missing in vw_userLogin')
+                return jsonify({'error': 'Internal Server Error'}), 500
 
-            session['user_id'] = user['user_id']
-            session['user_code'] = user['user_code']
-            session['user_role'] = user['user_role']
-            session['username'] = user['username']
-            csrf_token = secrets.token_hex(32)
-            session['csrf_token'] = csrf_token
+            if bcrypt.check_password_hash(stored_pw, password):
+                session.permanent = True
 
-            return jsonify({
-                'message': 'Logged in successfully',
-                'csrf_token': csrf_token,
-                'user': {
-                    'user_id': user['user_id'],
-                    'user_code': user['user_code'],
-                    'user_role': user['user_role'],
-                    'username': user['username']
-                }
-            }), 200
+                session['user_id'] = user['user_id']
+                session['user_code'] = user['user_code']
+                session['user_role'] = user['user_role']
+                session['username'] = user['username']
+                csrf_token = secrets.token_hex(32)
+                session['csrf_token'] = csrf_token
+
+                return jsonify({
+                    'message': 'Logged in successfully',
+                    'csrf_token': csrf_token,
+                    'user': {
+                        'user_id': user['user_id'],
+                        'user_code': user['user_code'],
+                        'user_role': user['user_role'],
+                        'username': user['username']
+                    }
+                }), 200
 
         return jsonify({
             'error': 'Invalid username or password'
