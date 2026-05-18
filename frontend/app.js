@@ -1,22 +1,29 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 const SAFE_ITEM_TYPES = ['lost', 'found'];
 
-const categorySelect = document.getElementById('categoryId');
-const branchSelect = document.getElementById('branchId');
-const locationSelect = document.getElementById('locationId');
+let categorySelect = null;
+let branchSelect = null;
+let locationSelect = null;
 
 let pageSize = 15;
 let currentPage = 1;
 let lastTotal = 0;
 let hasSearched = false;
 
+let runSearch = null;
+
 let isFormDirty = false;
 let isHandlingModalNavigation = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    checkAuth();
-    initSearchAndFilters();
+    // Query DOM elements after page loads
+    categorySelect = document.getElementById('categoryId');
+    branchSelect = document.getElementById('branchId');
+    locationSelect = document.getElementById('locationId');
+
+    await checkAuth();
+    if (document.getElementById('searchInput')) { initSearchAndFilters(); }
 
     await loadCategories();
     await loadBranches();
@@ -41,7 +48,10 @@ function initSearchAndFilters() {
     const nextBtn = document.getElementById('nextPage');
     const pageNumberEl = document.getElementById('pageNumber');
 
-    document.getElementById('pages').style.display = 'none';
+    const pagesEl = document.getElementById('pages');
+    if (pagesEl) {
+        pagesEl.style.display = 'none';
+    }
 
     let selectedItemType = '';
 
@@ -83,7 +93,7 @@ function initSearchAndFilters() {
     });
 
     function updatePageUI() {
-        const totalPages = Math.ceil(lastTotal / pageSize) || 1;
+        const totalPages = Math.max(1, Math.ceil(lastTotal / pageSize));
 
         pageNumberEl.textContent = currentPage;
         prevBtn.disabled = currentPage <= 1;
@@ -91,18 +101,33 @@ function initSearchAndFilters() {
 
         const pagination = document.getElementById('pages');
 
-        if (hasSearched || lastTotal === 0 || totalPages <= 1) {
+        if(!pagination) return;
+
+        if (!hasSearched || totalPages <= 1) {
             pagination.style.display = 'none';
         } else {
             pagination.style.display = 'flex';
         }
     }
 
+
+    const initialPageActive =
+    document.querySelector('.page-btn.active') ||
+    document.querySelector('.page-btn');
+
+    if (initialPageActive) {
+        requestAnimationFrame(() => {
+            positionPageTrack(initialPageActive);
+        });
+    }
+
     function syncPaginationUI() {
         const pagination = document.getElementById('pages');
-        const totalPages = Math.ceil(lastTotal / pageSize) || 0;
+        const totalPages = Math.max(1, Math.ceil(lastTotal / pageSize));
 
-        if (!hasSearched || lastTotal === 0 || totalPages <= 1) {
+        if(!pagination) return;
+
+        if (!hasSearched || totalPages <= 1) {
             pagination.style.display = 'none';
             return;
         }
@@ -126,7 +151,7 @@ function initSearchAndFilters() {
     });
 
     nextBtn?.addEventListener('click', () => {
-        const totalPages = Math.ceil(lastTotal / pageSize);
+        const totalPages = Math.max(1, Math.ceil(lastTotal / pageSize));
 
         if (currentPage < totalPages) {
             currentPage++;
@@ -135,7 +160,7 @@ function initSearchAndFilters() {
         }
     });
 
-    const runSearch = debounce(async () => {
+    runSearch = debounce(async () => {
         if (!resultsContainer || !searchInput) return;
 
         const query = searchInput?.value.trim() || '';
@@ -154,6 +179,11 @@ function initSearchAndFilters() {
         ) {
             resultsContainer.innerHTML =
                 '<p>Type at least 2 characters or choose a filter.</p>';
+
+            hasSearched = false;
+            lastTotal = 0;
+            currentPage = 1;
+            updatePageUI();
 
             return;
         }
@@ -175,7 +205,7 @@ function initSearchAndFilters() {
             const data = await response.json();
 
             lastTotal = data.total;
-            const totalPages = Math.ceil(data.total / pageSize) || 0;
+            const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
 
             if (currentPage > totalPages) {
                 currentPage = totalPages;
@@ -185,8 +215,6 @@ function initSearchAndFilters() {
             displayResults(data.items, resultsContainer);
             updatePageUI();
             syncPaginationUI();
-
-            const pagination = document.getElementById('pages');
             
         } catch (error) {
             console.error('Error fetching search results:', error);
@@ -194,9 +222,15 @@ function initSearchAndFilters() {
         }
     }, 300);
     
-    categorySelect?.addEventListener('change', runSearch);
-    branchSelect?.addEventListener('change', runSearch);
-    locationSelect?.addEventListener('change', runSearch);
+        categorySelect?.addEventListener('change', () => {
+            currentPage = 1;
+            runSearch();
+        });
+
+        locationSelect?.addEventListener('change', () => {
+            currentPage = 1;
+            runSearch();
+        });
 
     if (filterButtons.length > 0) {
         filterButtons.forEach(button => {
@@ -205,6 +239,7 @@ function initSearchAndFilters() {
                 button.classList.add('active');
                 selectedItemType = button.textContent.trim().toLowerCase();
                 if (selectedItemType === 'all') selectedItemType = '';
+                currentPage = 1;
                 positionFilterTrack(button);
                 runSearch();
             });
@@ -222,10 +257,16 @@ function initSearchAndFilters() {
     }
 
     if (searchInput) {
-        searchInput.addEventListener('input', runSearch);
+        searchInput.addEventListener('input', () => {
+            currentPage = 1;
+            runSearch();
+        });
     }
     if (searchDescInput) {
-        searchDescInput.addEventListener('input', runSearch);
+        searchDescInput.addEventListener('input', () => {
+            currentPage = 1;
+            runSearch();
+        });
     }
 }
 
@@ -326,6 +367,12 @@ function initBranchLocationFilter() {
             locationSelect.disabled = true;
             locationSelect.innerHTML =
                 `<option value="" selected disabled>Select Branch first...</option>`;
+
+                if (runSearch) {
+                currentPage = 1;
+                runSearch();
+            }
+
             return;
         }
 
@@ -352,6 +399,11 @@ function initBranchLocationFilter() {
             });
 
             locationSelect.disabled = false;
+
+            if (runSearch) {
+                currentPage = 1;
+                runSearch();
+            }
 
         } catch (err) {
             console.error(err);
