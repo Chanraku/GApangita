@@ -157,6 +157,7 @@ function initSearchAndFilters() {
 
         try {
             resultsContainer.innerHTML = '<p>Searching...</p>';
+
             const params = new URLSearchParams();
             if (query) params.append('name_q', query);
             if (description) params.append('desc_q', description);
@@ -188,21 +189,10 @@ function initSearchAndFilters() {
             resultsContainer.innerHTML = '<p style="color: red;">Failed to load results. Is the backend running?</p>';
         }
     }, 300);
-
-    categorySelect.addEventListener('change', () => {
-        currentPage = 1;
-        runSearch();
-    });
-
-    branchSelect.addEventListener('change', () => {
-        currentPage = 1;
-        runSearch();
-    });
-
-    locationSelect.addEventListener('change', () => {
-        currentPage = 1;
-        runSearch();
-    });
+    
+    categorySelect?.addEventListener('change', runSearch);
+    branchSelect?.addEventListener('change', runSearch);
+    locationSelect?.addEventListener('change', runSearch);
 
     if (filterButtons.length > 0) {
         filterButtons.forEach(button => {
@@ -227,14 +217,12 @@ function initSearchAndFilters() {
         });
     }
 
-    searchInput.addEventListener('input', () => {
-        currentPage = 1;
-        runSearch();
-    });
-    searchDescInput.addEventListener('input', () => {
-        currentPage = 1;
-        runSearch();
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', runSearch);
+    }
+    if (searchDescInput) {
+        searchDescInput.addEventListener('input', runSearch);
+    }
 }
 
 function displayResults(items, resultsContainer) {
