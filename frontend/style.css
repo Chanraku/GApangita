@@ -536,9 +536,7 @@ select:disabled {
     opacity: 0.8;
 }
 
-/* =========================
-   CAMERA SECTION
-========================= */
+/* Camera Section */
 
 .camera-section {
     display: flex;
@@ -554,9 +552,7 @@ select:disabled {
     background-color: #f9f9f9;
 }
 
-/* =========================
-   VIDEO FEED
-========================= */
+/* Video Feed */
 
 video {
     width: 100%;
@@ -573,9 +569,7 @@ canvas {
     display: none;
 }
 
-/* =========================
-   IMAGE PREVIEW CONTAINER
-========================= */
+/* Image Preview Container */
 
 .image-preview-container {
     display: flex;
@@ -585,9 +579,7 @@ canvas {
     margin-top: 20px;
 }
 
-/* =========================
-   IMAGE PREVIEW
-========================= */
+/* Image Preview */
 
 .image-preview-container img {
     width: 100%;
@@ -599,18 +591,14 @@ canvas {
     object-fit: cover;
 }
 
-/* =========================
-   PLACEHOLDER TEXT
-========================= */
+/* Placeholder Text */
 
 .image-preview-container p {
     color: #666;
     font-style: italic;
 }
 
-/* =========================
-   BUTTONS
-========================= */
+/* Buttons */
 
 .btn {
     padding: 12px 18px;
@@ -632,9 +620,7 @@ canvas {
     opacity: 0.9;
 }
 
-/* =========================
-   OPTIONAL BUTTON COLORS
-========================= */
+/* Optional Button Colors */
 
 #openItemCameraBtn,
 #openUserCameraBtn {
@@ -652,22 +638,6 @@ canvas {
 #cancelUserImageBtn {
     background-color: #dc2626;
     color: white;
-}
-
-#itemCameraFeed,
-#userCameraFeed {
-    width: 100%;
-    max-width: 400px;
-    height: 300px;
-
-    display: block;
-
-    background-color: black;
-
-    border-radius: 12px;
-    border: 2px solid #ccc;
-
-    object-fit: cover;
 }
 
 /* Submit button */
