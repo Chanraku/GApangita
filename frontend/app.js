@@ -8,6 +8,7 @@ const locationSelect = document.getElementById('locationId');
 let pageSize = 15;
 let currentPage = 1;
 let lastTotal = 0;
+let hasSearched = false;
 
 let isFormDirty = false;
 let isHandlingModalNavigation = false;
@@ -39,6 +40,8 @@ function initSearchAndFilters() {
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
     const pageNumberEl = document.getElementById('pageNumber');
+
+    document.getElementById('pages').style.display = 'none';
 
     let selectedItemType = '';
 
@@ -88,7 +91,7 @@ function initSearchAndFilters() {
 
         const pagination = document.getElementById('pages');
 
-        if (lastTotal === 0 || totalPages <= 1) {
+        if (hasSearched || lastTotal === 0 || totalPages <= 1) {
             pagination.style.display = 'none';
         } else {
             pagination.style.display = 'flex';
@@ -99,7 +102,7 @@ function initSearchAndFilters() {
         const pagination = document.getElementById('pages');
         const totalPages = Math.ceil(lastTotal / pageSize) || 0;
 
-        if (lastTotal === 0 || totalPages <= 1) {
+        if (!hasSearched || lastTotal === 0 || totalPages <= 1) {
             pagination.style.display = 'none';
             return;
         }
@@ -178,6 +181,7 @@ function initSearchAndFilters() {
                 currentPage = totalPages;
             }
 
+            hasSearched = true;
             displayResults(data.items, resultsContainer);
             updatePageUI();
             syncPaginationUI();
