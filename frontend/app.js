@@ -3,6 +3,10 @@ let categorySelect = null;
 let branchSelect = null;
 let locationSelect = null;
 
+let itemStream = null;
+let userStream = null;
+let claimStream = null;
+
 const AppState = {
     pageSize: 15,
     currentPage: 1,

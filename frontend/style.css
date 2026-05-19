@@ -778,3 +778,75 @@ button[type="submit"] {
     }
 }
 /* ===== END: MODAL ITEM STYLES ===== */
+
+/* ===== BEGIN: CLAIM CAMERA MODAL STYLES ===== */
+
+.claim-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.claim-camera-feed {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+}
+
+.claim-preview-container {
+    width: 100%;
+    max-width: 400px;
+
+    min-height: 220px;
+
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    background: #f8f8f8;
+}
+
+.claim-preview-image {
+    width: 100%;
+    height: 220px;
+
+    object-fit: contain;
+
+    display: block;
+}
+
+.claim-preview-placeholder {
+    color: #777;
+    font-size: 14px;
+}
+
+/* If "Confirm Claim Item" button is disabled, make it look disabled */
+.btn:disabled,
+.btn-primary:disabled {
+
+    opacity: 0.6;
+    filter: saturate(40%) brightness(90%);
+    cursor: not-allowed;
+    transform: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
+/* Flex both buttons base on container width */
+.claim-button-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.claim-button-row .btn {
+    flex: 1;
+}
+
+/* ===== END: CLAIM CAMERA MODAL STYLES ===== */

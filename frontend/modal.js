@@ -10,7 +10,7 @@ const Modal = (() => {
         return {};
     }
 
-    function show({ title = '', message = '', node = null, type = 'alert', onConfirm = null }) {
+    function show({ title = '', message = '', node = null, type = 'alert', onConfirm = null, confirmText = 'Close' }) {
 
         titleEl.textContent = title;
 
@@ -32,6 +32,7 @@ const Modal = (() => {
             const confirmBtn = document.createElement('button');
             confirmBtn.className = 'btn-confirm';
             confirmBtn.textContent = 'Yes, Proceed';
+            confirmBtn.disabled = true;
             confirmBtn.onclick = () => {
                 hide();
                 if (onConfirm) onConfirm();
@@ -41,7 +42,7 @@ const Modal = (() => {
         } else {
             const okBtn = document.createElement('button');
             okBtn.className = 'btn-confirm';
-            okBtn.textContent = 'OK';
+            okBtn.textContent = confirmText;
             okBtn.onclick = () => {
                 hide();
                 if (onConfirm) onConfirm();
