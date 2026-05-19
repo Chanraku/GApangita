@@ -196,6 +196,7 @@ def search_openItems():
     desc_q = request.args.get('desc_q', '').strip()
     q = request.args.get('q', '').strip()
     filter_itemType = request.args.get('filter', '').lower()
+    status = request.args.get('status', 'open').lower()
 
     limit = request.args.get('limit', 15, type=int)
     page = request.args.get('page', 1, type=int)
@@ -208,11 +209,22 @@ def search_openItems():
     if (not name_q and not desc_q and not category_id and not branch_id and not location_id):
         return jsonify({'items': [], 'total': 0, 'page': page, 'limit': limit})
 
-    view_name = 'vw_openAllItems'
-    if filter_itemType == 'lost':
-        view_name = 'vw_openLostItems'
-    elif filter_itemType == 'found':
-        view_name = 'vw_openFoundItems'
+    # Determine correct SQL view
+    if status == 'closed':
+        if filter_itemType == 'lost':
+            view_name = 'vw_closedLostItems'
+        elif filter_itemType == 'found':
+            view_name = 'vw_closedFoundItems'
+        else:
+            view_name = 'vw_closedAllItems'
+
+    else:
+        if filter_itemType == 'lost':
+            view_name = 'vw_openLostItems'
+        elif filter_itemType == 'found':
+            view_name = 'vw_openFoundItems'
+        else:
+            view_name = 'vw_openAllItems'
 
     try:
         conn = get_db_connection()

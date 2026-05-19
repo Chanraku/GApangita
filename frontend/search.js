@@ -1,5 +1,8 @@
 // Search functionality
 function initSearchAndFilters() {
+
+    const isArchivePage = window.location.pathname.includes('archive.html');
+
     const searchInput = document.getElementById('searchInput');
     const searchDescInput = document.getElementById('searchDescInput');
     const resultsContainer = document.getElementById('resultsContainer');
@@ -164,6 +167,7 @@ function initSearchAndFilters() {
             if (category) params.append('category_id', category);
             if (branch) params.append('branch_id', branch);
             if (location) params.append('location_id', location);
+            if (isArchivePage) { params.append('status', 'closed'); }
             params.append('limit', AppState.pageSize);
             params.append('page', AppState.currentPage);
 

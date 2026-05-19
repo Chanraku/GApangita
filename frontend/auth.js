@@ -34,6 +34,7 @@ function updateNavbar(isAuth, user) {
         navLinks.innerHTML = `
             <a href="index.html" class="navbar__link">Home</a>
             <a href="report.html" class="navbar__link">Report Item</a>
+            <a href="archive.html" class="navbar__link">Archive</a>
             <div class="navbar__user">
                 <span><i class="fa-solid fa-user-circle"></i> ${escapeHtml(user.username)}</span>
                 <a href="#" id="logoutBtn" class="navbar__link" style="margin-left: 15px;">Logout</a>
