@@ -11,7 +11,7 @@ function formatDetails(item) {
     `;
 }
 
-function buildItemDetails(item) {
+function buildItemDetails(item, options = {}) {
 
     const container = document.createElement('div');
     container.className = 'item-modal';
@@ -51,32 +51,31 @@ function buildItemDetails(item) {
     container.appendChild(img);
     container.appendChild(content);
 
-    // CLAIM BUTTON
-    if (window.AppState?.isAuthenticated) {
+    // ACTION BUTTON
+    if (window.AppState?.isAuthenticated && options.actionButton) {
 
         const actions = document.createElement('div');
         actions.className = 'item-modal__actions';
-        const claimBtn = document.createElement('button');
-
-        claimBtn.type = 'button';
-        claimBtn.textContent = 'Claim Item';
-        claimBtn.className = 'btn btn-primary';
-        claimBtn.addEventListener('click', () => {
-
-            openClaimModal(item);
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        actionBtn.textContent = options.actionButton.text || 'Action';
+        actionBtn.className = options.actionButton.className || 'btn btn-primary';
+        actionBtn.addEventListener('click', () => {
+            if (options.actionButton.onClick) {
+                options.actionButton.onClick(item);
+            }
         });
-
-        actions.appendChild(claimBtn);
-        container.appendChild(actions);
-    }
+            actions.appendChild(actionBtn);
+            container.appendChild(actions);
+        }
 
     return container;
-}
+    }
 
-function showItemDetails(item) {
+function showItemDetails(item, options = {}) {
     Modal.show({
         title: 'Item Details',
-        node: buildItemDetails(item)
+        node: buildItemDetails(item, options)
     });
 }
 
@@ -222,6 +221,64 @@ function openClaimModal(item) {
     wrapper.appendChild(removePreviewBtn);
     wrapper.appendChild(claimConfirmBtn);
 
+    Modal.show({
+        title: '',
+        node: wrapper
+    });
+}
+
+function openRestoreItemModal(item) {
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'restore-modal';
+    const title = document.createElement('h3');
+    title.textContent = 'Restore Archived Item';
+    const description = document.createElement('p');
+
+    description.innerHTML = `
+        Are you sure you want to restore this item?<br><br>
+
+        <strong>Item:</strong> ${escapeHtml(item.name)}<br>
+        <strong>Status:</strong> ${escapeHtml(item.status)}
+    `;
+
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'restore-button-row';
+    const cancelBtn = document.createElement('button');
+
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'btn';
+    cancelBtn.addEventListener('click', () => {
+
+        Modal.hide();
+    });
+
+    const restoreBtn = document.createElement('button');
+    restoreBtn.type = 'button';
+    restoreBtn.textContent = 'Restore Item';
+    restoreBtn.className = 'btn btn-primary';
+    restoreBtn.addEventListener('click', async () => {
+
+        try {
+
+            // PLACEHOLDER LOGIC
+            console.log('Restoring item:', item.item_code);
+
+            Modal.hide();
+
+            alert('Placeholder: Item restored.');
+
+        } catch (error) {
+
+            console.error(error);
+
+            alert('Failed to restore item.');
+        }
+    });
+
+    buttonRow.append(cancelBtn, restoreBtn);
+    wrapper.append(title, description, buttonRow);
     Modal.show({
         title: '',
         node: wrapper

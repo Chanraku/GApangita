@@ -31,11 +31,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (resultsContainer) {
             resultsContainer.addEventListener('click', (e) => {
+
                 const card = e.target.closest('.item-card');
                 if (!card) return;
-
                 const item = JSON.parse(decodeURIComponent(card.dataset.item));
-                showItemDetails(item);
+                const isArchivePage = window.location.pathname.includes('archive');
+
+                if (isArchivePage) {
+                    showItemDetails(item, {
+                        actionButton: {
+                            text: 'Restore Item',
+                            className: 'btn btn-primary',
+                            onClick: openRestoreItemModal
+                        }
+                    });
+                } else {
+
+                    showItemDetails(item, {
+                        actionButton: {
+                            text: 'Claim Item',
+                            className: 'btn btn-primary',
+                            onClick: openClaimModal
+                        }
+                    });
+                }
             });
         }
 
