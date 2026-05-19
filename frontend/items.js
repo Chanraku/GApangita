@@ -168,11 +168,11 @@ function openClaimModal(item) {
     removePreviewBtn.className = 'btn';
 
     // Confirm Button
-    const confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.textContent = 'Confirm Claim Item';
-    confirmBtn.className = 'btn btn-primary';
-    confirmBtn.disabled = true;
+    const claimConfirmBtn = document.createElement('button');
+    claimConfirmBtn.type = 'button';
+    claimConfirmBtn.textContent = 'Confirm Claim Item';
+    claimConfirmBtn.className = 'btn btn-primary';
+    claimConfirmBtn.disabled = true;
 
     // Camera Events
     openCameraBtn.addEventListener('click', async () => {
@@ -200,11 +200,13 @@ function openClaimModal(item) {
             imagePreview,
             previewPlaceholder
         );
-        confirmBtn.disabled = true;
+        claimConfirmBtn.disabled = true;
     });
 
-    confirmBtn.addEventListener('click', () => {
+    claimConfirmBtn.addEventListener('click', () => {
         if (!imagePreview.src || imagePreview.style.display === 'none') { return; }
+        stopClaimCamera(cameraFeed);
+        Modal.hide();
         alert('Placeholder claim functionality.');
     });
 
@@ -218,12 +220,10 @@ function openClaimModal(item) {
     wrapper.appendChild(previewTitle);
     wrapper.appendChild(previewContainer);
     wrapper.appendChild(removePreviewBtn);
-    wrapper.appendChild(confirmBtn);
+    wrapper.appendChild(claimConfirmBtn);
 
     Modal.show({
         title: '',
-        node: wrapper,
-        confirmText: 'Close',
-        onConfirm: () => { stopClaimCamera(cameraFeed); }
+        node: wrapper
     });
 }

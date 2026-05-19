@@ -11,7 +11,7 @@ function initUnsavedChangesTracker() {
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', () => {
-            setTimeout(() => { AppState.isFormDirty = false; }, 50);
+            setTimeout(() => { isFormDirty = false; }, 50);
         });
         form.addEventListener('reset', () => {
             AppState.isFormDirty = false;
@@ -34,17 +34,25 @@ function initUnsavedChangesTracker() {
     
     // LOGIC 2: CUSTOM MODAL (only for internal link navigation)
     document.body.addEventListener('click', (e) => {
+
+        // Ignore clicks inside modal
+        if (e.target.closest('#customModal')) {
+            return;
+        }
+
         const link = e.target.closest('a');
+
         if (!link) return;
 
         // ignore special browser/system actions
         if (link.target === '_blank') return;
 
         const href = link.getAttribute('href');
+
         if (!href || href.startsWith('#')) return;
 
-        // Show CUSTOM MODAL if there are unsaved changes
         if (AppState.isFormDirty) {
+
             e.preventDefault();
 
             Modal.show({
@@ -57,6 +65,7 @@ function initUnsavedChangesTracker() {
                     window.location.href = href;
                 }
             });
+
         }
     });
 }

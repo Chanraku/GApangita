@@ -32,7 +32,7 @@ const Modal = (() => {
             const confirmBtn = document.createElement('button');
             confirmBtn.className = 'btn-confirm';
             confirmBtn.textContent = 'Yes, Proceed';
-            confirmBtn.disabled = true;
+            confirmBtn.disabled = false;
             confirmBtn.onclick = () => {
                 hide();
                 if (onConfirm) onConfirm();
