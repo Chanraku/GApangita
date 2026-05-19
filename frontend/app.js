@@ -12,7 +12,10 @@ const AppState = {
     runSearch: null,
 
     isFormDirty: false,
-    isHandlingModalNavigation: false
+    isHandlingModalNavigation: false,
+
+    isAuthenticated: false,
+    user: null
 };
 
 window.AppState = AppState;

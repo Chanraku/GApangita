@@ -6,6 +6,10 @@ async function checkAuth() {
         
         const isAuth = data.is_authenticated;
 
+        // Global Authentication across the js files
+        window.AppState.isAuthenticated = isAuth;
+        window.AppState.user = data.user || null;
+
         if (!isAuth) {
             localStorage.removeItem('csrf_token');
         }
