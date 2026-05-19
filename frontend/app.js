@@ -22,13 +22,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const resultsContainer = document.getElementById('resultsContainer');
 
-    resultsContainer.addEventListener('click', (e) => {
-        const card = e.target.closest('.item-card');
-        if (!card) return;
+    if (resultsContainer) {
+            resultsContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.item-card');
+                if (!card) return;
 
-        const item = JSON.parse(decodeURIComponent(card.dataset.item));
-        showItemDetails(item);
-    });
+                const item = JSON.parse(decodeURIComponent(card.dataset.item));
+                showItemDetails(item);
+            });
+        }
 
     // Query DOM elements after page loads
     categorySelect = document.getElementById('categoryId');
