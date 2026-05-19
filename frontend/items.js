@@ -187,7 +187,7 @@ function openClaimModal(item) {
             imagePreview,
             previewPlaceholder
         );
-        confirmBtn.disabled = false;
+        claimConfirmBtn.disabled = false;
     });
 
     closeCameraBtn.addEventListener('click', () => {
