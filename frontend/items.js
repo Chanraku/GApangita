@@ -94,7 +94,13 @@ function openClaimModal(item) {
         stopClaimCamera(cameraFeed);
         Modal.hide();
         setTimeout(() => {
-            showItemDetails(item);
+            showItemDetails(item, {
+                actionButton: {
+                    text: 'Claim Item',
+                    className: 'btn btn-primary',
+                    onClick: openClaimModal
+                }
+            });
         }, 50);
     });
 
@@ -103,7 +109,6 @@ function openClaimModal(item) {
     title.textContent = 'Claim Item';
 
     // Button Container
-
     const buttonRow = document.createElement('div');
     buttonRow.className = 'claim-button-row';
 
@@ -144,7 +149,6 @@ function openClaimModal(item) {
     previewTitle.textContent = 'Preview Image';
 
     // Preview Container
-
     const previewContainer = document.createElement('div');
     previewContainer.className = 'claim-preview-container';
 
@@ -233,14 +237,25 @@ function openRestoreItemModal(item) {
     wrapper.className = 'restore-modal';
     const title = document.createElement('h3');
     title.textContent = 'Restore Archived Item';
+    const itemDetailsNode = buildItemDetails(item);
     const description = document.createElement('p');
 
-    description.innerHTML = `
-        Are you sure you want to restore this item?<br><br>
+    // Reason Label
+    const reasonLabel = document.createElement('label');
+    reasonLabel.textContent = 'Reason for restoring item';
 
-        <strong>Item:</strong> ${escapeHtml(item.name)}<br>
-        <strong>Status:</strong> ${escapeHtml(item.status)}
-    `;
+    // Reason Textarea
+    const reasonInput = document.createElement('textarea');
+    reasonInput.className = 'restore-reason-input';
+    reasonInput.placeholder = 'Enter at least 8 characters...';
+    reasonInput.rows = 4;
+
+    // Validation Text
+    const validationText = document.createElement('small');
+    validationText.textContent = 'Minimum 8 characters required.';
+    validationText.style.display = 'block';
+
+    description.textContent = 'Please review the item details before restoring.';
 
     const buttonRow = document.createElement('div');
     buttonRow.className = 'restore-button-row';
@@ -258,6 +273,7 @@ function openRestoreItemModal(item) {
     restoreBtn.type = 'button';
     restoreBtn.textContent = 'Restore Item';
     restoreBtn.className = 'btn btn-primary';
+    restoreBtn.disabled = true;
     restoreBtn.addEventListener('click', async () => {
 
         try {
@@ -277,8 +293,38 @@ function openRestoreItemModal(item) {
         }
     });
 
+    reasonInput.addEventListener('input', () => {
+
+        const value = reasonInput.value.trim();
+
+        restoreBtn.disabled = value.length < 8;
+    });
+
+
+        // Go Back Button
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.textContent = '← Go Back';
+    backBtn.className = 'btn';
+    backBtn.addEventListener('click', () => {
+
+        Modal.hide();
+
+        setTimeout(() => {
+
+            showItemDetails(item, {
+                actionButton: {
+                    text: 'Restore Item',
+                    className: 'btn btn-primary',
+                    onClick: openRestoreItemModal
+                }
+            });
+
+        }, 50);
+    });
+
     buttonRow.append(cancelBtn, restoreBtn);
-    wrapper.append(title, description, buttonRow);
+    wrapper.append(backBtn, title, description, itemDetailsNode, reasonLabel, reasonInput, validationText, buttonRow);
     Modal.show({
         title: '',
         node: wrapper
