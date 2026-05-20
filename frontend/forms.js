@@ -42,15 +42,34 @@ if (reportForm) {
 
                 Modal.show({
                     title: 'Success!',
-                    message: 'Report submitted successfully!'
+                    message: 'Report submitted successfully!',
+                    onConfirm: () => { window.location.href = 'index.html'; }
                 });
 
+                // Reset standard textual input form structures
                 reportForm.reset();
-                itemImageFile = null;
-                itemImagePreview.src = '';
-                itemImagePreview.style.display = 'none';
-                itemPreviewPlaceholder.style.display = 'block';
                 AppState.isFormDirty = false;
+
+                // Clear out and hide Item Image variables
+                if (typeof itemImagePreview !== 'undefined' && itemImagePreview) {
+                    itemImagePreview.src = '';
+                    itemImagePreview.style.display = 'none';
+                }
+                if (typeof itemPreviewPlaceholder !== 'undefined' && itemPreviewPlaceholder) {
+                    itemPreviewPlaceholder.style.display = 'block';
+                }
+
+                // Clear out and hide Reporter Image variables
+                userImageFile = null;
+                if (typeof reporterImagePreview !== 'undefined' && reporterImagePreview) {
+                    reporterImagePreview.src = '';
+                    reporterImagePreview.style.display = 'none';
+                }
+                if (typeof reporterPreviewPlaceholder !== 'undefined' && reporterPreviewPlaceholder) {
+                    reporterPreviewPlaceholder.style.display = 'block';
+                }
+
+
 
             } else if (response.status === 401) {
 
