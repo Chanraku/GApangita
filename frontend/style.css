@@ -14,6 +14,88 @@ body {
   line-height: 1.6;
 }
 
+.hero {
+  display: flex;
+  justify-content: center;
+  align-items: center;  
+  background: radial-gradient(circle at 70% 30%, #f9d2dc 0%, #f2b8c6 60%, #f9d2dc 100%);
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  padding: 80px 60px;
+  max-height: 150px;
+  gap: 10px;        
+} 
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.text-side {
+  flex: 1;
+  z-index: 2;
+  text-align: left;
+  margin-left: 30px;
+}
+
+.hero h1 {
+  font-weight: 1000;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-family:Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  color: #2e1010;
+  line-height: 1.2;
+}
+
+.hero p {
+  font-size: 18px;
+  color: #5a3030;
+  line-height: 1.6;
+}
+
+.hero img {
+  width: 200px;
+  mix-blend-mode: multiply;
+  animation: float 3s ease-in-out infinite;
+  text-align: left;
+  flex-shrink: 0;  
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+.img-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  margin-right: 70px;      
+  flex-shrink: 0;
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.9); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.pulse {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(212, 83, 126, 0.25);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+.pulse:nth-child(2) {
+  animation-delay: 0.7s;
+}
+
 /* Navbar */
 .navbar {
   background-color: var(--color-primary);
@@ -120,10 +202,32 @@ body {
   align-items: center;
 }
 
+.search-header i {
+  font-size: 30px;
+  color: #F4C9D6;
+  text-shadow: 0 0 1px #3E2723;
+}
+
 .search-header-2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.fa-tag {
+  font-size: 20px;
+  color: #b8b8b8;
+  /*text-shadow: 2px 2px 1px #464646;*/
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.fa-file-lines{
+  font-size: 20px;
+  color: #b8b8b8;
+  /*text-shadow: 2px 2px 1px #464646;*/
+  padding: 10px;
+  border-radius: 8px;
 }
 
 .search-title-group {
@@ -279,8 +383,8 @@ body {
 .form-input, .form-select, .form-textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #adacac;
+  border-radius: 10px;
   font-size: 1rem;
   font-family: var(--font-family);
   box-sizing: border-box;
