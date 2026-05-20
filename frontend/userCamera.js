@@ -1,3 +1,5 @@
+let userImageFile = null;
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const openUserCameraBtn = document.getElementById('openUserCameraBtn');
@@ -14,11 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
 
-            // Stops Item Camera First
-            if (itemStream) {
-
+            // Stops Item Camera First (Safe check to ensure variables exist)
+            if (typeof itemStream !== 'undefined' && itemStream) {
                 itemStream.getTracks().forEach(track => track.stop());
-                itemCameraFeed.srcObject = null;
+                if (typeof itemCameraFeed !== 'undefined' && itemCameraFeed) {
+                    itemCameraFeed.srcObject = null;
+                }
             }
 
             // Stops Old User Stream
@@ -50,16 +53,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         context.drawImage( userCameraFeed, 0, 0, userSnapshotCanvas.width, userSnapshotCanvas.height );
 
-        const imageData = userSnapshotCanvas.toDataURL('image/png');
+        userSnapshotCanvas.toBlob((blob) => {
 
-        userImagePreview.src = imageData;
-        userImagePreview.style.display = 'block';
+            // Create uploadable file
+            userImageFile = new File(
+                [blob],
+                `reporter_${Date.now()}.png`,
+                {
+                    type: 'image/png'
+                }
+            );
 
-        userPreviewPlaceholder.style.display = 'none';
+            // Preview image
+            const imageUrl = URL.createObjectURL(userImageFile);
+
+            userImagePreview.src = imageUrl;
+            userImagePreview.style.display = 'block';
+
+            userPreviewPlaceholder.style.display = 'none';
+
+            // turn off webcam after capture
+            if (userStream) {
+                userStream.getTracks().forEach(track => track.stop());
+                userCameraFeed.srcObject = null;
+            }
+
+        }, 'image/png');
 
     });
 
     cancelUserImageBtn.addEventListener('click', () => {
+
+        // Remove stored file
+        userImageFile = null;
 
         // Remove preview
         userImagePreview.src = '';

@@ -1,5 +1,9 @@
 from flask import Flask, request, jsonify, session
 from flask_bcrypt import Bcrypt
+from flask import send_from_directory
+from werkzeug.utils import secure_filename
+import os
+import uuid
 from datetime import timedelta
 import mysql.connector
 from flask_cors import CORS
@@ -32,12 +36,34 @@ db_config = {
     'database': 'gapangita_db_test'
 }
 
+# FOR ITEM AND REPORTER CAMERA
+UPLOAD_FOLDER = 'uploads'
+
+ITEM_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'items')
+REPORTER_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'reporters')
+
+os.makedirs(ITEM_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(REPORTER_UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Allowed file extensions
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# ================================
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 MAX_DESCRIPTION_LENGTH = 1000
 ALLOWED_ITEM_TYPES = ['lost', 'found']
 USERNAME_REGEX = r'^[a-zA-Z0-9_]{3,20}$'
 
 def get_db_connection():
     return mysql.connector.connect(**db_config)
+
+# Helper function to check allowed file extensions 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Helper Function for setting user context in DB (for logging/auditing)
 def set_db_user_context(cursor):
@@ -82,6 +108,9 @@ def validate_csrf():
 
     return secrets.compare_digest(token, stored_token)
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
@@ -157,16 +186,28 @@ def report_item():
     if not validate_csrf():
         return jsonify({'error': 'Invalid CSRF token'}), 403
 
-    data = request.json
+    data = request.form
 
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
     item_type = data.get('item_type', '').lower().strip()
+    item_image = request.files.get('item_image')
+    reporter_image = request.files.get('reporter_image')
 
-    # Validate required fields
+    # ADDED: Extract date_found parameter from the frontend FormData payload
+    date_found = data.get('date_found')
+    if date_found and date_found.strip() == "":
+        date_found = None
+
+    # Validate required fields (Enforcing that Date Found must be filled out)
     if not name:
         return jsonify({
             'error': 'Item name is required.'
+        }), 400
+        
+    if not date_found:
+        return jsonify({
+            'error': 'Date and Time Found is required.'
         }), 400
 
     # Validate item type
@@ -180,25 +221,50 @@ def report_item():
         return jsonify({
             'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
         }), 400
+    
+    item_file_path = None
+    reporter_file_path = None
 
+    # Save item image
+    if item_image and allowed_file(item_image.filename):
+        ext = item_image.filename.rsplit('.', 1)[1].lower()
+        filename = f"item_{uuid.uuid4().hex}.{ext}"
+        
+        # RELATIVE path (store in DB)
+        item_file_path = f"items/{filename}"
+        
+        # ACTUAL save path
+        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
+        item_image.save(save_path)
+
+    # Save reporter image
+    if reporter_image and allowed_file(reporter_image.filename):
+        ext = reporter_image.filename.rsplit('.', 1)[1].lower()
+        filename = f"reporter_{uuid.uuid4().hex}.{ext}"
+        
+        reporter_file_path = f"reporters/{filename}"
+        save_path = os.path.join(UPLOAD_FOLDER, reporter_file_path)
+        reporter_image.save(save_path)
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         set_db_user_context(cursor)
         
+        # Modifying parameter block execution query to include your parsed date_found variable
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             name,
-            description,
+            description if description else None,
             item_type,
-            data.get('category_code'),
-            data.get('branch_code'),
-            data.get('location_code'),
-            data.get('item_file_path'),
-            data.get('date_found')
+            data.get('category_code') if data.get('category_code') else None,
+            data.get('branch_code') if data.get('branch_code') else None,
+            data.get('location_code') if data.get('location_code') else None,
+            item_file_path,
+            reporter_file_path,
+            date_found  # Sent down safely to your stored procedure arguments mapping
         )
         
         cursor.execute(query, values)

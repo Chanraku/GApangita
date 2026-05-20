@@ -1,3 +1,5 @@
+let itemImageFile = null;
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const openItemCameraBtn = document.getElementById('openItemCameraBtn');
@@ -14,12 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
 
-            // Stop USER camera first
-            if (userStream) {
-
-                userStream.getTracks().forEach(track => track.stop());
+            if (typeof userStream !== 'undefined' && userStream) {
+            userStream.getTracks().forEach(track => track.stop());
+            
+                if (typeof userCameraFeed !== 'undefined' && userCameraFeed) {
                 userCameraFeed.srcObject = null;
-
+                }
+                
             }
 
             // Stop old ITEM stream
@@ -53,16 +56,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         context.drawImage(itemCameraFeed, 0, 0, itemSnapshotCanvas.width, itemSnapshotCanvas.height);
 
-        const imageData = itemSnapshotCanvas.toDataURL('image/png');
+        itemSnapshotCanvas.toBlob((blob) => {
 
-        itemImagePreview.src = imageData;
-        itemImagePreview.style.display = 'block';
+            // Create actual file object
+            itemImageFile = new File(
+                [blob],
+                `item_${Date.now()}.png`,
+                {
+                    type: 'image/png'
+                }
+            );
 
-        itemPreviewPlaceholder.style.display = 'none';
+            // Preview image
+            const imageUrl = URL.createObjectURL(itemImageFile);
+            itemImagePreview.src = imageUrl;
+            itemImagePreview.style.display = 'block';
+            itemPreviewPlaceholder.style.display = 'none';
 
+            // turn off webcam after capture
+            if (itemStream) {
+                itemStream.getTracks().forEach(track => track.stop());
+                itemCameraFeed.srcObject = null;
+            }
+
+        }, 'image/png');
     });
 
     cancelItemImageBtn.addEventListener('click', () => {
+
+        // Remove stored file
+        itemImageFile = null;
 
         // Remove preview
         itemImagePreview.src = '';

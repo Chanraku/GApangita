@@ -345,11 +345,43 @@ CREATE PROCEDURE sp_submit_report(
     IN p_branch_code VARCHAR(15),
     IN p_location_code VARCHAR(15),
     IN p_item_file_path VARCHAR(255),
-    IN p_date_found DATETIME
+    IN p_reporter_file_path VARCHAR(255), -- FIXED: Added missing 8th parameter
+    IN p_date_found DATETIME               -- FIXED: Moved to 9th parameter to match your Flask code
 )
 BEGIN
-    INSERT INTO items (NAME, DESCRIPTION, item_type, category_code, branch_code, location_code, date_found, item_file_path)
-    VALUES (p_name, p_description, p_item_type, p_category_code, p_branch_code, p_location_code, p_date_found, p_item_file_path);
+    -- Declare a working variable to craft our unique item tracking code string
+    DECLARE v_item_code VARCHAR(15);
+    
+    -- Generate a clean 12-character tracking code string (e.g., ITEM-A3B9C1)
+    SET v_item_code = CONCAT('ITEM-', UPPER(SUBSTRING(MD5(RAND()), 1, 6)));
+
+    -- Execute the query matching your table column constraints
+    INSERT INTO items (
+        item_code,
+        NAME, 
+        DESCRIPTION, 
+        item_type, 
+        STATUS,
+        category_code, 
+        branch_code, 
+        location_code, 
+        item_file_path,
+        reporter_file_path, -- FIXED: Column mapped safely
+        date_found
+    )
+    VALUES (
+        v_item_code,
+        p_name, 
+        p_description, 
+        p_item_type, 
+        'open', -- Forces default status tracking state explicitly
+        p_category_code, 
+        p_branch_code, 
+        p_location_code, 
+        p_item_file_path,
+        p_reporter_file_path,
+        p_date_found
+    );
 END$$
 
 DELIMITER ;
