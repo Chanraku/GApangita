@@ -286,6 +286,12 @@ body {
   box-sizing: border-box;
 }
 
+textarea.form-control {
+    min-height: 120px;
+    line-height: 1.5;
+    resize: none;
+}
+
 .form-group {
     margin-bottom: 1.25rem;
     display: flex;
@@ -315,6 +321,68 @@ body {
 input[required]::placeholder {
     color: #888888;
 }
+
+/* OK BUTTON FOR DATEPICKER */
+.form-group.datetime-container {
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 0.5rem;
+}
+
+.input-action-wrapper {
+    display: flex;
+    gap: 8px; /* Space between input and button */
+    align-items: center;
+    width: 100%;
+}
+
+.input-action-wrapper .form-control {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.95rem;
+    height: 42px; /* Uniform standard height */
+    padding: 0.5rem 0.75rem;
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    flex: 1; /* Makes the input expand to fill available space */
+    transition: border-color 0.15s ease-in-out;
+}
+
+.input-action-wrapper .form-control:focus {
+    outline: none;
+    border-color: #000000;
+}
+
+.datetime-ok-btn {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    height: 42px; /* Matches the input height exactly */
+    padding: 0 16px;
+    background-color: #000000;
+    color: #ffffff;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.1s ease-in-out, color 0.1s ease-in-out;
+}
+
+.datetime-ok-btn:hover {
+    background-color: #ffffff;
+    color: #000000;
+}
+/* END OF OK BUTTON FOR DATEPICKER */
 
 .btn {
   display: inline-block;

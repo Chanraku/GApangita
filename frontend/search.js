@@ -164,9 +164,9 @@ function initSearchAndFilters() {
             if (query) params.append('name_q', query);
             if (description) params.append('desc_q', description);
             if (selectedItemType) params.append('filter', selectedItemType);
-            if (category) params.append('category_id', category);
-            if (branch) params.append('branch_id', branch);
-            if (location) params.append('location_id', location);
+            if (category) params.append('category_code', category);
+            if (branch) params.append('branch_code', branch);
+            if (location) params.append('location_code', location);
             if (isArchivePage) { params.append('status', 'closed'); }
             params.append('limit', AppState.pageSize);
             params.append('page', AppState.currentPage);
@@ -255,12 +255,18 @@ function createItemCard(item) {
         // store full item for click handling
         root.dataset.item = encodeURIComponent(JSON.stringify(item));
 
-        // IMAGE (this is what you wanted)
-        card.querySelector('.item-card__image').src =
-            cardImage.src = item.image_url || '/assets/placeholder.png';
+        // Image with fallback
+        if (item.item_file_path) {
+                const cleanPath = item.item_file_path.replace(/^\/+/, '');
+                const imgBase = API_BASE_URL.replace(/\/api$/, '');
+                cardImage.src = `${imgBase}/uploads/${cleanPath}`;
+            } else {
+                cardImage.src = 'assets/placeholder.png';
+            }
+
             cardImage.onerror = () => {
                 cardImage.onerror = null;
-                cardImage.src = '/assets/placeholder.png';
+                cardImage.src = 'assets/placeholder.png';
             };
 
         // TITLE

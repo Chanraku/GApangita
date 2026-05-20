@@ -12,16 +12,24 @@ function formatDetails(item) {
 }
 
 function buildItemDetails(item, options = {}) {
+    console.log("DATABASE ROW OBJECT IS:", item);
 
     const container = document.createElement('div');
     container.className = 'item-modal';
     const img = document.createElement('img');
 
-    img.src = item.image_url || '/assets/placeholder.png';
-    img.onerror = () => {
-        img.onerror = null;
-        img.src = '/assets/placeholder.png';
-    };
+    if (item.item_file_path) {
+            const cleanPath = item.item_file_path.replace(/^\/+/, '');
+            const imgBase = API_BASE_URL.replace(/\/api$/, '');
+            img.src = `${imgBase}/uploads/${cleanPath}`;
+        } else {
+            img.src = 'assets/placeholder.png';
+        }
+
+        img.onerror = () => {
+            img.onerror = null;
+            img.src = 'assets/placeholder.png';
+        };
 
     img.alt = item.name || 'Item image';
     img.className = 'item-modal__image';

@@ -60,9 +60,17 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group datetime-container">
                         <label class="form-label" for="dateFound">Date and Time Found</label>
-                        <input type="datetime-local" id="dateFound" class="form-control" required>
+                        <div class="input-action-wrapper">
+                            <input type="datetime-local" id="dateFound" class="form-control" required>
+                            <button type="button" id="confirmDateTimeBtn" class="datetime-ok-btn"> OK </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="itemDescription">Description</label>
+                        <textarea id="itemDescription" class="form-control" rows="4" minlength="8" placeholder="Describe distinguishing features (e.g., color, brand, scratches, case design)..." required></textarea>
                     </div>
 
                     <h3> Capture Item Image </h3>
