@@ -39,6 +39,19 @@ USERNAME_REGEX = r'^[a-zA-Z0-9_]{3,20}$'
 def get_db_connection():
     return mysql.connector.connect(**db_config)
 
+# Helper Function for setting user context in DB (for logging/auditing)
+def set_db_user_context(cursor):
+    cursor.execute(
+        """
+        SET @logged_in_user_code = %s,
+            @logged_in_username = %s
+        """,
+        (
+            session.get('user_code'),
+            session.get('username')
+        )
+    )
+
 def levenshtein_distance(s1, s2):
     s1, s2 = s1.lower(), s2.lower()
     if len(s1) < len(s2):
@@ -89,6 +102,7 @@ def get_branches():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        set_db_user_context(cursor)
 
         cursor.execute("SELECT * FROM vw_branches")
         rows = cursor.fetchall()
@@ -104,6 +118,7 @@ def get_locations():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        set_db_user_context(cursor)
 
         cursor.execute("SELECT * FROM vw_locations")
         rows = cursor.fetchall()
@@ -118,6 +133,7 @@ def get_locations_by_branch(branch_code):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        set_db_user_context(cursor)
 
         query = """
             SELECT * FROM vw_branchLocations
@@ -169,14 +185,20 @@ def report_item():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        set_db_user_context(cursor)
         
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
-            data.get('name'), data.get('description'), data.get('item_type'),
-            data.get('category_id'), data.get('branch_id'), data.get('location_id'),
-            session.get('user_code') # Use logged in user's code
+            name,
+            description,
+            item_type,
+            data.get('category_code'),
+            data.get('branch_code'),
+            data.get('location_code'),
+            data.get('item_file_path'),
+            data.get('date_found')
         )
         
         cursor.execute(query, values)
@@ -202,11 +224,11 @@ def search_openItems():
     page = request.args.get('page', 1, type=int)
     offset = (page - 1) * limit
 
-    category_id = request.args.get('category_id', '')
-    branch_id = request.args.get('branch_id', '')
-    location_id = request.args.get('location_id', '')
+    category_code = request.args.get('category_code', '')
+    branch_code = request.args.get('branch_code', '')
+    location_code = request.args.get('location_code', '')
     
-    if (not name_q and not desc_q and not category_id and not branch_id and not location_id):
+    if (not name_q and not desc_q and not category_code and not branch_code and not location_code):
         return jsonify({'items': [], 'total': 0, 'page': page, 'limit': limit})
 
     # Determine correct SQL view
@@ -237,23 +259,23 @@ def search_openItems():
         count_params = []
 
         # filters
-        if category_id:
+        if category_code:
             base_query += " AND category_code = %s"
             count_query += " AND category_code = %s"
-            params.append(category_id)
-            count_params.append(category_id)
+            params.append(category_code)
+            count_params.append(category_code)
 
-        if branch_id:
+        if branch_code:
             base_query += " AND branch_code = %s"
             count_query += " AND branch_code = %s"
-            params.append(branch_id)
-            count_params.append(branch_id)
+            params.append(branch_code)
+            count_params.append(branch_code)
 
-        if location_id:
+        if location_code:
             base_query += " AND location_code = %s"
             count_query += " AND location_code = %s"
-            params.append(location_id)
-            count_params.append(location_id)
+            params.append(location_code)
+            count_params.append(location_code)
 
         # total count (NO LIMIT!)
         cursor.execute(count_query, count_params)
