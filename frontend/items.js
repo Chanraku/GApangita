@@ -7,6 +7,7 @@ function formatDetails(item) {
         Branch: ${escapeHtml(item.branchName || 'N/A')}
         Location: ${escapeHtml(item.locationName || 'N/A')} (${escapeHtml(item.locationDescription || '')})
         Description: ${escapeHtml(item.description || 'No description provided.')}
+        Date Found: ${formatWithoutTimezone(item.date_found)}
         Date Reported: ${formatWithoutTimezone(item.date_reported)}
     `;
 }
@@ -48,6 +49,11 @@ function buildItemDetails(item, options = {}) {
         <p>
             <strong>Description:</strong><br>
             ${escapeHtml(item.description || 'No description provided.')}
+        </p>
+
+        <p>
+            <strong>Date Found:</strong><br>
+            ${formatWithoutTimezone(item.date_found)}
         </p>
 
         <p>
