@@ -41,9 +41,11 @@ UPLOAD_FOLDER = 'uploads'
 
 ITEM_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'items')
 REPORTER_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'reporters')
+CLAIMANT_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'claimant')
 
 os.makedirs(ITEM_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(REPORTER_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(CLAIMANT_UPLOAD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -498,6 +500,115 @@ def auth_status():
             }
         }), 200
     return jsonify({'is_authenticated': False}), 200
+
+@app.route('/api/claims', methods=['POST'])
+def process_item_claim():
+    # Enforce Authentication Protection
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized. Please log in to process claims.'}), 401
+    
+    # Enforce CSRF Protection
+    if not validate_csrf():
+         return jsonify({'error': 'Invalid CSRF token'}), 403
+    
+    data = request.form
+    item_code = data.get('item_code', '').strip()
+    first_name = data.get('claimer_first_name', '').strip()
+    middle_name = data.get('claimer_middle_name', '').strip()
+    last_name = data.get('claimer_last_name', '').strip()
+    contact_number = data.get('contact_number', '').strip()
+    claim_image = request.files.get('claimProof')
+
+    # Server-Side Validation Check
+    if not item_code or not first_name or not last_name or not contact_number:
+        return jsonify({'error': 'Missing required claim details.'}), 400
+
+    if not claim_image or not allowed_file(claim_image.filename):
+        return jsonify({'error': 'A valid image snapshot file is required.'}), 400
+
+    # Process image saving into your clean path formatting structure
+    ext = claim_image.filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"claim_{uuid.uuid4().hex}.{ext}"
+    
+    # Store just 'claimant/filename.jpg' inside your table row
+    db_relative_path = f"claimant/{unique_filename}"
+    actual_save_path = os.path.join(UPLOAD_FOLDER, db_relative_path)
+    claim_image.save(actual_save_path)
+
+    # 4. Handle Database Transactions
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Enable your audit tracking log setup context if your database relies on it
+        set_db_user_context(cursor)
+
+        # Action Step A: Write data down to your claimed_items log table
+        query = """
+            CALL sp_insert_into_claimed_items(%s, %s, %s, %s, %s, %s)
+        """
+        values = (
+            item_code,
+            first_name,
+            middle_name if middle_name else None,
+            last_name,
+            contact_number,
+            db_relative_path
+        )
+        cursor.execute(query, values)
+        # Commit everything to database storage safely
+        conn.commit()
+        return jsonify({'message': 'Claim successfully updated via stored procedure.'}), 201
+
+    except Exception as e:
+        # If anything fails, rollback database alterations instantly to protect data integrity
+        if conn:
+            conn.rollback()
+        return jsonify({'message': f'Database processing failure: {str(e)}'}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+# This GET endpoint allows clients to retrieve claim details for a specific item code, 
+# with standard session-based authorization checks and CORS preflight handling.
+@app.route('/api/claims/<item_code>', methods=['GET', 'OPTIONS'])
+def get_item_claim_details(item_code):
+    # Handle the browser preflight request instantly
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'CORS preflight ok'}), 200
+
+    # Enforce standard session authorization checks
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized view request.'}), 401
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Simple directional lookup target filtering by item_code keys
+        query = "SELECT * FROM claimed_items WHERE item_code = %s"
+        cursor.execute(query, (item_code,))
+        claim_record = cursor.fetchone()
+
+        if not claim_record:
+            return jsonify({'error': 'No matching transaction logs tracking this item.'}), 404
+
+        return jsonify(claim_record), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Server pipeline tracking crash: {str(e)}'}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
