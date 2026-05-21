@@ -74,7 +74,22 @@
                         <textarea id="itemDescription" class="form-control" rows="4" minlength="8" placeholder="Describe distinguishing features (e.g., color, brand, scratches, case design)..." required></textarea>
                     </div>
 
-                    <h3> Capture Item Image </h3>
+                    <button type="submit" id="submitReportBtn" class="btn btn-primary" disabled>Submit Report</button>
+                </form>
+            </div>
+
+            <div class="right-side">
+                <div class="pink-card" style="background-color: var(--color-accent); color: var(--color-primary);">
+                    <h2><i class="fa-regular fa-lightbulb"></i>  Tips for Reporting</h2>
+                    <ul>
+                        <li>Be as specific as possible in your description.</li>
+                        <li>Mention unique markings, brands, or colors.</li>
+                        <li>Ensure you select the correct category.</li>
+                    </ul>
+                </div>
+
+                <div class="capture-card" style="background-color: var(--color-accent); color: var(--color-primary);">
+                    <h2> Capture Item Image </h2>
 
                     <div class="camera-section">
 
@@ -85,35 +100,25 @@
 
                     </div>
 
-                    <button type="submit" id="submitReportBtn" class="btn btn-primary" disabled>Submit Report</button>
-                </form>
-            </div>
-            
-            <div class="card" style="background-color: var(--color-accent); color: var(--color-primary);">
-                <h2>Tips for Reporting</h2>
-                <ul>
-                    <li>Be as specific as possible in your description.</li>
-                    <li>Mention unique markings, brands, or colors.</li>
-                    <li>Ensure you select the correct category.</li>
-                </ul>
-
-                <div class="image-preview-container">
-
-                <h2>Item Image Preview</h2>
-
-
-                <img id="itemImagePreview" alt="Preview" style = "display:none;">
-                <p id="itemPreviewPlaceholder"> No image selected yet. </p>
-
-                <br>
-
-                <button type="button" id="cancelItemImageBtn" class="btn"> Remove Item Image </button>
-
                 </div>
 
-                <br>
+
+
+                <div class="camera-card" style="background-color: var(--color-accent); color: var(--color-primary);">
+                    <h2><i class="fa-regular fa-image"></i> Item Image Preview</h2>
+
+                    <div class="image-preview-container">
+                        <img id="itemImagePreview" alt="Preview" style = "display:none;">
+                        <p id="itemPreviewPlaceholder"> No image selected yet. </p>
+
+                        <button type="button" id="cancelItemImageBtn" class="btn"> Remove Item Image </button>
+                    </div>
                     
-            </div>
+                </div>
+
+
+            </div>          
+
         </div>
     </div>
 

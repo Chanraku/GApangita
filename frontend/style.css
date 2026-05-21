@@ -777,13 +777,9 @@ select:disabled {
     display: flex;
     flex-direction: column;
     gap: 15px;
-
     padding: 20px;
-    margin-bottom: 25px;
-
     border: 1px solid #ccc;
     border-radius: 12px;
-
     background-color: #f9f9f9;
 }
 
@@ -798,6 +794,58 @@ video {
     background-color: black;
 }
 
+.right-side {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pink-card,
+.camera-card,
+.capture-card {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.pink-card h2, 
+.camera-card h2, 
+.capture-card h2{
+  font-weight: 500;
+  margin-bottom: 12px;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pink-card ul {
+  padding: 0;
+  margin: 0;
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pink-card ul li {
+  font-size: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pink-card ul li::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    margin-top: 5px;
+    flex-shrink: 0;
+    opacity: 0.5;
+}
+
 /* Hide canvas */
 canvas {
     display: none;
@@ -805,43 +853,63 @@ canvas {
 
 /* Image Preview Container */
 .image-preview-container {
-    display: flex;
-    flex-direction: column;
+  border: 1.5px dashed var(--color-primary);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
 
-    gap: 15px;
-    margin-top: 20px;
+.image-preview-container:hover {
+  opacity: 1;
+}
+
+#itemImagePreview {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+#itemPreviewPlaceholder {
+  font-size: 13px;
+  opacity: 0.6;
+  margin: 0;
 }
 
 /* Image Preview */
 .image-preview-container img {
-    width: 100%;
-    max-width: 400px;
-
-    border-radius: 12px;
-    border: 2px solid #ddd;
-
-    object-fit: cover;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  border: 2px solid #ddd;
+  object-fit: cover;
 }
 
-/* Placeholder Text */
-.image-preview-container p {
-    color: #666;
-    font-style: italic;
+#itemPreviewPlaceholder i {
+  font-size: 28px;
+  opacity: 0.5;
+}
+
+#itemPreviewPlaceholder p {
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+#cancelItemImageBtn {
+    width: 100%;
 }
 
 /* Buttons */
 
 .btn {
     padding: 12px 18px;
-
+    font-family: var(--font-family);
     border: none;
     border-radius: 10px;
-
     cursor: pointer;
-
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-
     transition: 0.2s ease;
 }
 
