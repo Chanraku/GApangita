@@ -13,7 +13,6 @@ function formatDetails(item) {
 }
 
 function buildItemDetails(item, options = {}) {
-
     if (window.location.pathname.includes('archive.html')) {
         options.isArchivePage = true;
     }
@@ -88,7 +87,7 @@ function buildItemDetails(item, options = {}) {
             actions.appendChild(actionBtn);
         }
 
-        // FIX: Place Claimant button right underneath/beside the standard option button
+        // Place Claimant button right underneath/beside the standard option button
         if (options.isArchivePage) {
             const claimantDetailsBtn = document.createElement('button');
             claimantDetailsBtn.type = 'button';
@@ -201,7 +200,7 @@ function openClaimModal(item) {
         checkFormValidity();
     });
 
-    // NEW: Bind verification tracking checks across required input textboxes
+    // Bind verification tracking checks across required input textboxes
     firstNameField.input.addEventListener('input', checkFormValidity);
     lastNameField.input.addEventListener('input', checkFormValidity);
 
@@ -471,7 +470,6 @@ function openClaimantDetailsModal(item, options = {}) {
     wrapper.append(backBtn, title, loadingText);
     Modal.show({ title: '', node: wrapper });
 
-    // FIX: Added credentials configuration to route authentication parameters safely
     fetch(`${API_BASE_URL}/claims/${item.item_code}`, {
         method: 'GET',
         credentials: 'include',
@@ -493,7 +491,6 @@ function openClaimantDetailsModal(item, options = {}) {
             const middleInitial = claimData.claimer_middle_name ? ` ${escapeHtml(claimData.claimer_middle_name)}` : '';
             const fullName = `${escapeHtml(claimData.claimer_first_name)}${middleInitial} ${escapeHtml(claimData.claimer_last_name)}`;
 
-            // NEW CHANGE: Robust path lookup to ensure zero property mismatch crashes
             let rawImagePath = claimData.claimProof_file_path || claimData.claimProof || claimData.file_path;
             if (!rawImagePath) {
                 const matchingKey = Object.keys(claimData).find(k => k.toLowerCase().includes('proof') || k.toLowerCase().includes('path'));
@@ -502,7 +499,6 @@ function openClaimantDetailsModal(item, options = {}) {
 
             let proofImgHtml = `<p class="claimant-details__no-image"><em>No verification snapshot recorded on file logs.</em></p>`;
             
-            // FIX: The condition now checks rawImagePath instead of the static claimData property path
             if (rawImagePath && rawImagePath.trim() !== '') {
                 const cleanPath = rawImagePath.replace(/^\/+/, '');
                 const imgBase = API_BASE_URL.replace(/\/api$/, '');
@@ -524,7 +520,6 @@ function openClaimantDetailsModal(item, options = {}) {
             wrapper.appendChild(infoCard);
         })
     .catch(err => {
-        // FIX: Leverages your uniform error layout structure instead of plain text dumps
         wrapper.innerHTML = ''; 
         wrapper.appendChild(backBtn);
         showErrorModal(
@@ -533,7 +528,6 @@ function openClaimantDetailsModal(item, options = {}) {
         );
     });
 }
-
 
 function openRestoreItemModal(item) {
 
@@ -569,7 +563,6 @@ function openRestoreItemModal(item) {
     cancelBtn.textContent = 'Cancel';
     cancelBtn.className = 'btn';
     cancelBtn.addEventListener('click', () => {
-
         Modal.hide();
     });
 
@@ -579,43 +572,29 @@ function openRestoreItemModal(item) {
     restoreBtn.className = 'btn btn-primary';
     restoreBtn.disabled = true;
     restoreBtn.addEventListener('click', async () => {
-
         try {
-
-            // PLACEHOLDER LOGIC
             console.log('Restoring item:', item.item_code);
-
             Modal.hide();
-
             alert('Placeholder: Item restored.');
-
         } catch (error) {
-
             console.error(error);
-
             alert('Failed to restore item.');
         }
     });
 
     reasonInput.addEventListener('input', () => {
-
         const value = reasonInput.value.trim();
-
         restoreBtn.disabled = value.length < 8;
     });
 
-
-        // Go Back Button
+    // Go Back Button
     const backBtn = document.createElement('button');
     backBtn.type = 'button';
     backBtn.textContent = '← Go Back';
     backBtn.className = 'btn';
     backBtn.addEventListener('click', () => {
-
         Modal.hide();
-
         setTimeout(() => {
-
             showItemDetails(item, {
                 isArchivePage: true,
                 actionButton: {
@@ -624,7 +603,6 @@ function openRestoreItemModal(item) {
                     onClick: openRestoreItemModal
                 }
             });
-
         }, 50);
     });
 
