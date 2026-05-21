@@ -1,5 +1,9 @@
 from flask import Flask, request, jsonify, session
 from flask_bcrypt import Bcrypt
+from flask import send_from_directory
+from werkzeug.utils import secure_filename
+import os
+import uuid
 from datetime import timedelta
 import mysql.connector
 from flask_cors import CORS
@@ -32,12 +36,47 @@ db_config = {
     'database': 'gapangita_db_test'
 }
 
+# FOR ITEM AND REPORTER CAMERA
+UPLOAD_FOLDER = 'uploads'
+
+ITEM_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'items')
+REPORTER_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'reporters')
+
+os.makedirs(ITEM_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(REPORTER_UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Allowed file extensions
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# ================================
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 MAX_DESCRIPTION_LENGTH = 1000
 ALLOWED_ITEM_TYPES = ['lost', 'found']
 USERNAME_REGEX = r'^[a-zA-Z0-9_]{3,20}$'
 
 def get_db_connection():
     return mysql.connector.connect(**db_config)
+
+# Helper function to check allowed file extensions 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Helper Function for setting user context in DB (for logging/auditing)
+def set_db_user_context(cursor):
+    cursor.execute(
+        """
+        SET @logged_in_user_code = %s,
+            @logged_in_username = %s
+        """,
+        (
+            session.get('user_code'),
+            session.get('username')
+        )
+    )
 
 def levenshtein_distance(s1, s2):
     s1, s2 = s1.lower(), s2.lower()
@@ -69,6 +108,9 @@ def validate_csrf():
 
     return secrets.compare_digest(token, stored_token)
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
@@ -89,6 +131,7 @@ def get_branches():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        set_db_user_context(cursor)
 
         cursor.execute("SELECT * FROM vw_branches")
         rows = cursor.fetchall()
@@ -104,6 +147,7 @@ def get_locations():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        set_db_user_context(cursor)
 
         cursor.execute("SELECT * FROM vw_locations")
         rows = cursor.fetchall()
@@ -118,6 +162,7 @@ def get_locations_by_branch(branch_code):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        set_db_user_context(cursor)
 
         query = """
             SELECT * FROM vw_branchLocations
@@ -141,16 +186,28 @@ def report_item():
     if not validate_csrf():
         return jsonify({'error': 'Invalid CSRF token'}), 403
 
-    data = request.json
+    data = request.form
 
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
     item_type = data.get('item_type', '').lower().strip()
+    item_image = request.files.get('item_image')
+    reporter_image = request.files.get('reporter_image')
 
-    # Validate required fields
+    # ADDED: Extract date_found parameter from the frontend FormData payload
+    date_found = data.get('date_found')
+    if date_found and date_found.strip() == "":
+        date_found = None
+
+    # Validate required fields (Enforcing that Date Found must be filled out)
     if not name:
         return jsonify({
             'error': 'Item name is required.'
+        }), 400
+        
+    if not date_found:
+        return jsonify({
+            'error': 'Date and Time Found is required.'
         }), 400
 
     # Validate item type
@@ -164,19 +221,50 @@ def report_item():
         return jsonify({
             'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
         }), 400
+    
+    item_file_path = None
+    reporter_file_path = None
 
+    # Save item image
+    if item_image and allowed_file(item_image.filename):
+        ext = item_image.filename.rsplit('.', 1)[1].lower()
+        filename = f"item_{uuid.uuid4().hex}.{ext}"
+        
+        # RELATIVE path (store in DB)
+        item_file_path = f"items/{filename}"
+        
+        # ACTUAL save path
+        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
+        item_image.save(save_path)
+
+    # Save reporter image
+    if reporter_image and allowed_file(reporter_image.filename):
+        ext = reporter_image.filename.rsplit('.', 1)[1].lower()
+        filename = f"reporter_{uuid.uuid4().hex}.{ext}"
+        
+        reporter_file_path = f"reporters/{filename}"
+        save_path = os.path.join(UPLOAD_FOLDER, reporter_file_path)
+        reporter_image.save(save_path)
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        set_db_user_context(cursor)
         
+        # Modifying parameter block execution query to include your parsed date_found variable
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
-            data.get('name'), data.get('description'), data.get('item_type'),
-            data.get('category_id'), data.get('branch_id'), data.get('location_id'),
-            session.get('user_code') # Use logged in user's code
+            name,
+            description if description else None,
+            item_type,
+            data.get('category_code') if data.get('category_code') else None,
+            data.get('branch_code') if data.get('branch_code') else None,
+            data.get('location_code') if data.get('location_code') else None,
+            item_file_path,
+            reporter_file_path,
+            date_found  # Sent down safely to your stored procedure arguments mapping
         )
         
         cursor.execute(query, values)
@@ -196,23 +284,35 @@ def search_openItems():
     desc_q = request.args.get('desc_q', '').strip()
     q = request.args.get('q', '').strip()
     filter_itemType = request.args.get('filter', '').lower()
+    status = request.args.get('status', 'open').lower()
 
     limit = request.args.get('limit', 15, type=int)
     page = request.args.get('page', 1, type=int)
     offset = (page - 1) * limit
 
-    category_id = request.args.get('category_id', '')
-    branch_id = request.args.get('branch_id', '')
-    location_id = request.args.get('location_id', '')
+    category_code = request.args.get('category_code', '')
+    branch_code = request.args.get('branch_code', '')
+    location_code = request.args.get('location_code', '')
     
-    if (not name_q and not desc_q and not category_id and not branch_id and not location_id):
+    if (not name_q and not desc_q and not category_code and not branch_code and not location_code):
         return jsonify({'items': [], 'total': 0, 'page': page, 'limit': limit})
 
-    view_name = 'vw_openAllItems'
-    if filter_itemType == 'lost':
-        view_name = 'vw_openLostItems'
-    elif filter_itemType == 'found':
-        view_name = 'vw_openFoundItems'
+    # Determine correct SQL view
+    if status == 'closed':
+        if filter_itemType == 'lost':
+            view_name = 'vw_closedLostItems'
+        elif filter_itemType == 'found':
+            view_name = 'vw_closedFoundItems'
+        else:
+            view_name = 'vw_closedAllItems'
+
+    else:
+        if filter_itemType == 'lost':
+            view_name = 'vw_openLostItems'
+        elif filter_itemType == 'found':
+            view_name = 'vw_openFoundItems'
+        else:
+            view_name = 'vw_openAllItems'
 
     try:
         conn = get_db_connection()
@@ -225,23 +325,23 @@ def search_openItems():
         count_params = []
 
         # filters
-        if category_id:
+        if category_code:
             base_query += " AND category_code = %s"
             count_query += " AND category_code = %s"
-            params.append(category_id)
-            count_params.append(category_id)
+            params.append(category_code)
+            count_params.append(category_code)
 
-        if branch_id:
+        if branch_code:
             base_query += " AND branch_code = %s"
             count_query += " AND branch_code = %s"
-            params.append(branch_id)
-            count_params.append(branch_id)
+            params.append(branch_code)
+            count_params.append(branch_code)
 
-        if location_id:
+        if location_code:
             base_query += " AND location_code = %s"
             count_query += " AND location_code = %s"
-            params.append(location_id)
-            count_params.append(location_id)
+            params.append(location_code)
+            count_params.append(location_code)
 
         # total count (NO LIMIT!)
         cursor.execute(count_query, count_params)
@@ -326,27 +426,38 @@ def login():
         print(user)
 
         # Check if user exists AND password hash matches
-        if user and bcrypt.check_password_hash(user['password'], password):
+        if user:
+            # find the password-like field in the returned row safely
+            stored_pw = None
+            for key in user.keys():
+                if 'pass' in key.lower():
+                    stored_pw = user[key]
+                    break
 
-            session.permanent = True
+            if not stored_pw:
+                app.logger.error('Password field missing in vw_userLogin')
+                return jsonify({'error': 'Internal Server Error'}), 500
 
-            session['user_id'] = user['user_id']
-            session['user_code'] = user['user_code']
-            session['user_role'] = user['user_role']
-            session['username'] = user['username']
-            csrf_token = secrets.token_hex(32)
-            session['csrf_token'] = csrf_token
+            if bcrypt.check_password_hash(stored_pw, password):
+                session.permanent = True
 
-            return jsonify({
-                'message': 'Logged in successfully',
-                'csrf_token': csrf_token,
-                'user': {
-                    'user_id': user['user_id'],
-                    'user_code': user['user_code'],
-                    'user_role': user['user_role'],
-                    'username': user['username']
-                }
-            }), 200
+                session['user_id'] = user['user_id']
+                session['user_code'] = user['user_code']
+                session['user_role'] = user['user_role']
+                session['username'] = user['username']
+                csrf_token = secrets.token_hex(32)
+                session['csrf_token'] = csrf_token
+
+                return jsonify({
+                    'message': 'Logged in successfully',
+                    'csrf_token': csrf_token,
+                    'user': {
+                        'user_id': user['user_id'],
+                        'user_code': user['user_code'],
+                        'user_role': user['user_role'],
+                        'username': user['username']
+                    }
+                }), 200
 
         return jsonify({
             'error': 'Invalid username or password'
