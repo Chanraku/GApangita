@@ -785,13 +785,16 @@ select:disabled {
 
 /* Video Feed */
 video {
-    width: 100%;
-    max-width: 400px;
-
     border-radius: 12px;
     border: 2px solid #ddd;
-
     background-color: black;
+}
+
+#itemCameraFeed {
+  margin: 0 auto;
+  width: 266px;
+  height: 266px;
+  object-fit: cover;
 }
 
 .right-side {
