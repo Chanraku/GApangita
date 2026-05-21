@@ -124,7 +124,7 @@ if (loginForm) {
                 // SAVE CSRF TOKEN
                 localStorage.setItem('csrf_token', data.csrf_token);
 
-                window.location.href = 'report.html';
+                window.location.href = 'index.html';
 
             } else {
                 const err = await response.json();

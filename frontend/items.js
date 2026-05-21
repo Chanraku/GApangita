@@ -53,13 +53,13 @@ function buildItemDetails(item, options = {}) {
 
     const detailsText = document.createElement('div');
     detailsText.innerHTML = `
-        <p><strong>Name:</strong> ${escapeHtml(item.name)}</p>
-        <p><strong>Type:</strong> ${escapeHtml(item.item_type)}</p>
-        <p><strong>Category:</strong> ${escapeHtml(item.categoryName || 'N/A')}</p>
-        <p><strong>Branch:</strong> ${escapeHtml(item.branchName || 'N/A')}</p>
-        <p><strong>Location:</strong> ${escapeHtml(item.locationName || 'N/A')}</p>
-        <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p>
-        <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p>
+        <p><strong>Name:</strong><br> ${escapeHtml(item.name)}</p><hr>
+        <p><strong>Type:</strong><br> ${escapeHtml(item.item_type)}</p><hr>
+        <p><strong>Category:</strong><br> ${escapeHtml(item.categoryName || 'N/A')}</p><hr>
+        <p><strong>Branch:</strong><br> ${escapeHtml(item.branchName || 'N/A')}</p><hr>
+        <p><strong>Location:</strong><br> ${escapeHtml(item.locationName || 'N/A')}</p><hr>
+        <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p><hr>
+        <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p><hr>
         <p><strong>Date Reported:</strong><br>${formatWithoutTimezone(item.date_reported)}</p>
     `;
     content.appendChild(detailsText);
