@@ -15,6 +15,7 @@ body {
 }
 
 .hero {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;  
@@ -22,8 +23,9 @@ body {
   border-radius: 20px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.08);
   padding: 80px 60px;
-  max-height: 150px;
-  gap: 10px;        
+  min-height: 150px;
+  gap: 10px;       
+  overflow: hidden;  
 } 
 
 .hero::before {
@@ -31,6 +33,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
 }
 
 .text-side {
@@ -56,6 +59,7 @@ body {
 
 .hero img {
   width: 200px;
+  height: 200px;
   mix-blend-mode: multiply;
   animation: float 3s ease-in-out infinite;
   text-align: left;
@@ -105,6 +109,7 @@ body {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 10; 
 }
 
 .navbar__brand {
@@ -882,7 +887,7 @@ button[type="submit"] {
     padding: 10px 18px;
     border: none;
     border-radius: 10px;
-    background-color: #2563eb;
+    background-color: #ff477e;
     color: white;
     font-size: 14px;
     font-weight: 600;
@@ -893,7 +898,7 @@ button[type="submit"] {
 /* Hover */
 .pagination button:hover {
     transform: translateY(-2px);
-    background-color: #1d4ed8;
+    background-color: #3E2723;
 }
 
 /* Click effect */
@@ -1176,79 +1181,3 @@ button[type="submit"] {
 }
 
 /* ===== END: CLAIMANT INFO STYLES ===== */
-
-/* ===== BEGIN: PROOF OF CLAIM IMAGE STYLES ===== */
-
-/* Item Details Layout Enhancements */
-.item-modal__image-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.item-modal__claimant-btn {
-    width: 100%;
-    margin-top: 4px;
-    font-weight: 600;
-}
-
-/* Claimant Details Window Layout Structure */
-.claimant-details__title {
-    margin-top: 15px;
-    font-size: 1.4rem;
-    color: #333;
-}
-
-.claimant-details__loading {
-    font-style: italic;
-    color: #666;
-    margin-top: 10px;
-}
-
-.claimant-details__error {
-    color: #dc3545;
-    font-weight: 500;
-    margin-top: 10px;
-}
-
-.claimant-info-card {
-    margin-top: 15px;
-    padding: 15px;
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    border-radius: 6px;
-    text-align: left;
-}
-
-.claimant-info-card p {
-    margin: 8px 0;
-    line-height: 1.4;
-}
-
-.claimant-details__divider {
-    border: 0;
-    border-top: 1px solid #e0e0e0;
-    margin: 15px 0;
-}
-
-.claimant-details__image-container {
-    margin-top: 15px;
-    text-align: center;
-}
-
-.claimant-details__proof-img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    max-height: 250px;
-    margin-top: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.claimant-details__no-image {
-    color: #888;
-    font-style: italic;
-}
-
-/* ===== END: PROOF OF CLAIM IMAGE STYLES ===== */

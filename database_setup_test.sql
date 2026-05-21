@@ -348,19 +348,10 @@ CREATE PROCEDURE sp_submit_report(
     IN p_branch_code VARCHAR(15),
     IN p_location_code VARCHAR(15),
     IN p_item_file_path VARCHAR(255),
-    IN p_reporter_file_path VARCHAR(255), -- FIXED: Added missing 8th parameter
-    IN p_date_found DATETIME               -- FIXED: Moved to 9th parameter to match your Flask code
+    IN p_date_found DATETIME
 )
 BEGIN
-    -- Declare a working variable to craft our unique item tracking code string
-    DECLARE v_item_code VARCHAR(15);
-    
-    -- Generate a clean 12-character tracking code string (e.g., ITEM-A3B9C1)
-    SET v_item_code = CONCAT('ITEM-', UPPER(SUBSTRING(MD5(RAND()), 1, 6)));
-
-    -- Execute the query matching your table column constraints
     INSERT INTO items (
-        item_code,
         NAME, 
         DESCRIPTION, 
         item_type, 
@@ -369,20 +360,17 @@ BEGIN
         branch_code, 
         location_code, 
         item_file_path,
-        reporter_file_path, -- FIXED: Column mapped safely
         date_found
     )
     VALUES (
-        v_item_code,
         p_name, 
         p_description, 
         p_item_type, 
-        'open', -- Forces default status tracking state explicitly
+        'open',
         p_category_code, 
         p_branch_code, 
         p_location_code, 
         p_item_file_path,
-        p_reporter_file_path,
         p_date_found
     );
 END$$
@@ -402,13 +390,8 @@ CREATE PROCEDURE sp_insert_into_claimed_items(
     IN p_contact_number VARCHAR(20),
     IN p_claimProof_file_path VARCHAR(255)
 )
-BEGIN
-
-    DECLARE v_claimed_item_code VARCHAR(15);
-    SET v_claimed_item_code = fn_generate_id('claimed_items');
-    
+BEGIN    
     INSERT INTO claimed_items (
-	claimed_item_code,
         item_code, 
         claimer_first_name, 
         claimer_middle_name, 
@@ -417,7 +400,6 @@ BEGIN
         claimProof_file_path
     )
     VALUES (
-	v_claimed_item_code,
         p_item_code, 
         p_claimer_first_name, 
         p_claimer_middle_name, 
@@ -429,9 +411,7 @@ END$$
 
 -- Create Functions
 -- 1
-DROP FUNCTION IF EXISTS fn_generate_id;
-
-DELIMITER $$
+DROP FUNCTION IF EXISTS fn_generate_id$$
 
 CREATE FUNCTION fn_generate_id(
     p_table_name VARCHAR(50)

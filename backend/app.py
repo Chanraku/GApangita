@@ -225,9 +225,7 @@ def report_item():
         }), 400
     
     item_file_path = None
-    reporter_file_path = None
 
-    # Save item image
     if item_image and allowed_file(item_image.filename):
         ext = item_image.filename.rsplit('.', 1)[1].lower()
         filename = f"item_{uuid.uuid4().hex}.{ext}"
@@ -239,23 +237,13 @@ def report_item():
         save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
         item_image.save(save_path)
 
-    # Save reporter image
-    if reporter_image and allowed_file(reporter_image.filename):
-        ext = reporter_image.filename.rsplit('.', 1)[1].lower()
-        filename = f"reporter_{uuid.uuid4().hex}.{ext}"
-        
-        reporter_file_path = f"reporters/{filename}"
-        save_path = os.path.join(UPLOAD_FOLDER, reporter_file_path)
-        reporter_image.save(save_path)
-
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         set_db_user_context(cursor)
         
-        # Modifying parameter block execution query to include your parsed date_found variable
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             name,
@@ -265,8 +253,7 @@ def report_item():
             data.get('branch_code') if data.get('branch_code') else None,
             data.get('location_code') if data.get('location_code') else None,
             item_file_path,
-            reporter_file_path,
-            date_found  # Sent down safely to your stored procedure arguments mapping
+            date_found
         )
         
         cursor.execute(query, values)
