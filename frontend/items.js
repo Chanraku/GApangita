@@ -17,6 +17,11 @@ function buildItemDetails(item, options = {}) {
 
     const container = document.createElement('div');
     container.className = 'item-modal';
+
+    // IMAGE
+    const imgWrapper = document.createElement('div');
+    imgWrapper.className = 'item-modal__image-wrapper';
+
     const img = document.createElement('img');
 
     if (item.item_file_path) {
@@ -34,6 +39,27 @@ function buildItemDetails(item, options = {}) {
 
     img.alt = item.name || 'Item image';
     img.className = 'item-modal__image';
+
+    // Append image to its wrapper first to maintain consistent layout even if image fails to load
+    imgWrapper.appendChild(img);
+
+    // CONDITIONALLY APPEND CLAIMANT DETAILS BUTTON FOR ARCHIVED ITEMS
+    const lowerStatus = (item.status || '').toLowerCase();
+    if (options.isArchivePage && (lowerStatus === 'closed' || lowerStatus === 'resolved')) {
+        const claimantDetailsBtn = document.createElement('button');
+        claimantDetailsBtn.type = 'button';
+        claimantDetailsBtn.textContent = '📄 View Claimant Details';
+        claimantDetailsBtn.className = 'btn btn-secondary item-modal__claimant-btn';
+        
+        claimantDetailsBtn.addEventListener('click', () => {
+            Modal.hide(); // Clears current modal window view layout safely
+            setTimeout(() => {
+                openClaimantDetailsModal(item, options); // Pass options downstream to retain state parameters
+            }, 50);
+        });
+        
+        imgWrapper.appendChild(claimantDetailsBtn);
+    }
 
     const content = document.createElement('div');
 
@@ -164,17 +190,15 @@ function openClaimModal(item) {
     // Add custom class identifier specifically for the standalone contact row
     contactField.group.classList.add('claim-contact-group');
 
-    // Live validation for contact number field to allow only digits and limit to 11 characters
+    // Real-time data sanitization validation listener engine for contact field input
     contactField.input.addEventListener('input', (e) => {
-        // Strip out any character that isn't a digit (0-9)
-        let value = e.target.value.replace(/\D/g, '');
-        // Truncate to exactly 11 characters max
-        if (value.length > 11) {  value = value.substring(0, 11);}
+        let value = e.target.value.replace(/\D/g, ''); // Instantly scrub out non-numeric entries
+        if (value.length > 11) value = value.substring(0, 11); // Hard limit length to 11 characters maximum
         e.target.value = value;
-        checkFormValidity(); // Trigger live button check on input change
+        checkFormValidity();
     });
 
-    // Function to check overall form validity and enable/disable the confirm button
+    // NEW: Bind verification tracking checks across required input textboxes
     firstNameField.input.addEventListener('input', checkFormValidity);
     lastNameField.input.addEventListener('input', checkFormValidity);
 
@@ -255,15 +279,15 @@ function openClaimModal(item) {
     claimConfirmBtn.className = 'btn btn-primary';
     claimConfirmBtn.disabled = true;
 
-    // Form Validation Function
+    // Integrated evaluation function checking all constraints simultaneously
     function checkFormValidity() {
-        const hasFirstName = firstNameField.input.value.trim().length > 0;
-        const hasLastName = lastNameField.input.value.trim().length > 0;
-        const hasValidContact = contactField.input.value.trim().length === 11;
-        // Check if an image is actually captured and visible in the preview slot
-        const hasImage = imagePreview.src && imagePreview.style.display !== 'none';
-        // Button is ONLY enabled if ALL 4 conditions are perfectly met
-        claimConfirmBtn.disabled = !(hasFirstName && hasLastName && hasValidContact && hasImage);
+        const hasFname = firstNameField.input.value.trim().length > 0;
+        const hasLname = lastNameField.input.value.trim().length > 0;
+        const hasValidPhone = contactField.input.value.trim().length === 11;
+        const hasPhoto = imagePreview.src && imagePreview.style.display !== 'none';
+
+        // Unlock only if all required tracking constraints validate true
+        claimConfirmBtn.disabled = !(hasFname && hasLname && hasValidPhone && hasPhoto);
     }
 
     // Camera Events
@@ -306,7 +330,10 @@ function openClaimModal(item) {
 
             // Validation check for required inputs
             if (!firstName || !lastName || !contactNum) {
-                alert('Please fill out all required fields marked with an asterisk (*).');
+                showErrorModal(
+                'Missing Required Fields', 
+                'Please ensure all fields marked with a red asterisk (*) are completely filled out before submitting your claim.'
+            );
                 return;
             }
 
@@ -317,7 +344,10 @@ function openClaimModal(item) {
             // Extract the raw image snapshot blob from the canvas
             snapshotCanvas.toBlob(async (blob) => {
                 if (!blob) {
-                    alert('Failed to process canvas snapshot image.');
+                    showErrorModal(
+                        'Image Processing Error',
+                        'Failed to process the captured image. Please try again.'
+                    );
                     claimConfirmBtn.disabled = false;
                     claimConfirmBtn.textContent = 'Confirm Claim Item';
                     return;
@@ -341,9 +371,10 @@ function openClaimModal(item) {
                 // Send payload to your endpoint
                 const response = await fetch(`${API_BASE_URL}/claims`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-                        'X-CSRF-Token': sessionStorage.getItem('csrf_token') || '' 
+                        'X-CSRF-Token': localStorage.getItem('csrf_token') || '' 
                     },
                     body: formData
                 });
@@ -357,7 +388,10 @@ function openClaimModal(item) {
                 // Clean up hardware and UI using the now fully functional onClose system
                 stopClaimCamera(cameraFeed);
                 Modal.hide();
-                alert('Item successfully marked as Claimed and logged!');
+                showErrorModal(
+                    'Claim Submitted Successfully',
+                    'Your claim has been submitted and recorded. The item status will be updated accordingly.'
+                );
                 window.location.reload(); // force clean reload to update the item status in the list
                 
                 // Refresh list if table view function exists
@@ -365,7 +399,10 @@ function openClaimModal(item) {
 
             } catch (error) {
                 console.error('Submission tracking failure:', error);
-                alert(`Failed to save claim: ${error.message}`);
+                showErrorModal(
+                    'Claim Submission Failed',
+                    `Failed to save claim: ${error.message}`
+                );
                 
                 // Re-enable button on error so they can try again
                 claimConfirmBtn.disabled = false;
@@ -406,6 +443,80 @@ function openClaimModal(item) {
     });
 
 }
+
+function openClaimantDetailsModal(item, options = {}) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'claimant-details-modal';
+
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.textContent = '← Back to Item';
+    backBtn.className = 'btn';
+    backBtn.addEventListener('click', () => {
+        Modal.hide();
+        setTimeout(() => { showItemDetails(item, options); }, 50); });
+
+    const title = document.createElement('h3');
+    title.className = 'claimant-details__title';
+    title.textContent = 'Claimant Verification Record';
+
+    const loadingText = document.createElement('p');
+    loadingText.className = 'claimant-details__loading';
+    loadingText.textContent = 'Fetching transaction logs from secure ledger...';
+    
+    wrapper.append(backBtn, title, loadingText);
+    Modal.show({ title: '', node: wrapper });
+
+    // Request data details safely from the backend database endpoint using the unique foreign code reference mapping
+    fetch(`${API_BASE_URL}/claims/${item.item_code}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+    })
+
+    .then(res => {
+        if (!res.ok) throw new Error('Claim tracking records for this code identification index could not be located.');
+        return res.json();
+    })
+
+    .then(claimData => {
+        loadingText.remove();
+
+        const infoCard = document.createElement('div');
+        infoCard.className = 'claimant-info-card';
+
+        const middleInitial = claimData.claimer_middle_name ? ` ${escapeHtml(claimData.claimer_middle_name)}` : '';
+        const fullName = `${escapeHtml(claimData.claimer_first_name)}${middleInitial} ${escapeHtml(claimData.claimer_last_name)}`;
+
+        let proofImgHtml = `<p class="claimant-details__no-image"><em>No verification snapshot recorded on file logs.</em></p>`;
+        if (claimData.claimProof_file_path) {
+            const cleanPath = claimData.claimProof_file_path.replace(/^\/+/, '');
+            const imgBase = API_BASE_URL.replace(/\/api$/, '');
+            proofImgHtml = `
+                <div class="claimant-details__image-container">
+                    <p><strong>Identity Verification Snapshot:</strong></p>
+                    <img src="${imgBase}/uploads/${cleanPath}" alt="Claim Verification Image" class="claimant-details__proof-img" />
+                </div>`;
+        }
+
+        //<p><strong>Claim Tracking Reference ID:</strong> ${escapeHtml(claimData.claimed_item_code || 'N/A')}</p>
+        infoCard.innerHTML = `
+            <p><strong>Full Name of Claimant:</strong> ${fullName}</p>
+            <p><strong>Contact Number:</strong> ${escapeHtml(claimData.contact_number)}</p>
+            <p><strong>Transaction Time:</strong> ${formatWithoutTimezone(claimData.date_claimed)}</p>
+            <hr class="claimant-details__divider" />
+            ${proofImgHtml}
+        `;
+        
+        wrapper.appendChild(infoCard);
+    })
+    .catch(err => {
+        loadingText.textContent = `Error: ${err.message}`;
+        loadingText.className = 'claimant-details__error';
+    });
+}
+
 
 function openRestoreItemModal(item) {
 

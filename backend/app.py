@@ -545,17 +545,11 @@ def process_item_claim():
         # Enable your audit tracking log setup context if your database relies on it
         set_db_user_context(cursor)
 
-        # Generate a tracking claim reference code block (e.g., CLM-XXXXXXXX)
-        claim_reference_code = f"CLM-{secrets.token_hex(4).upper()}"
-
         # Action Step A: Write data down to your claimed_items log table
-        insert_query = """
-            INSERT INTO claimed_items 
-            (claimed_item_code, item_code, claimer_first_name, claimer_middle_name, claimer_last_name, contact_number, claimProof_file_path)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        query = """
+            CALL sp_insert_into_claimed_items(%s, %s, %s, %s, %s, %s)
         """
-        insert_values = (
-            claim_reference_code,
+        values = (
             item_code,
             first_name,
             middle_name if middle_name else None,
@@ -563,25 +557,16 @@ def process_item_claim():
             contact_number,
             db_relative_path
         )
-        cursor.execute(insert_query, insert_values)
-
-        # Action Step B: Lock the item status flag to 'Closed' matching your rule practices
-        update_query = """
-            UPDATE items 
-            SET status = 'Closed' 
-            WHERE item_code = %s
-        """
-        cursor.execute(update_query, (item_code,))
-
+        cursor.execute(query, values)
         # Commit everything to database storage safely
         conn.commit()
-        return jsonify({'message': 'Claim successfully written down and finalized.', 'claim_code': claim_reference_code}), 201
+        return jsonify({'message': 'Claim successfully updated via stored procedure.'}), 201
 
     except Exception as e:
         # If anything fails, rollback database alterations instantly to protect data integrity
         if conn:
             conn.rollback()
-        return jsonify({'error': f'Database processing failure: {str(e)}'}), 500
+        return jsonify({'message': f'Database processing failure: {str(e)}'}), 500
 
     finally:
         if cursor:
