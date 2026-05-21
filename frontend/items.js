@@ -272,9 +272,81 @@ function openClaimModal(item) {
 
     claimConfirmBtn.addEventListener('click', () => {
         if (!imagePreview.src || imagePreview.style.display === 'none') { return; }
-        stopClaimCamera(cameraFeed);
-        Modal.hide();
-        alert('Placeholder claim functionality.');
+
+            // Gather values from the input fields
+            const firstName = firstNameField.input.value.trim();
+            const middleName = middleNameField.input.value.trim();
+            const lastName = lastNameField.input.value.trim();
+            const contactNum = contactField.input.value.trim();
+
+            // Validation check for required inputs
+            if (!firstName || !lastName || !contactNum) {
+                alert('Please fill out all required fields marked with an asterisk (*).');
+                return;
+            }
+
+            // Disable button to prevent double submissions
+            claimConfirmBtn.disabled = true;
+            claimConfirmBtn.textContent = 'Processing Claim...';
+
+            // Extract the raw image snapshot blob from the canvas
+            snapshotCanvas.toBlob(async (blob) => {
+                if (!blob) {
+                    alert('Failed to process canvas snapshot image.');
+                    claimConfirmBtn.disabled = false;
+                    claimConfirmBtn.textContent = 'Confirm Claim Item';
+                    return;
+                }
+
+                // Prepare the payload using Multipart FormData
+                const formData = new FormData();
+                formData.append('item_code', item.item_code);
+                formData.append('claimer_first_name', firstName);
+
+                 // Fallback to empty string if optional middle name is omitted
+                formData.append('claimer_middle_name', middleName || '');
+
+                formData.append('claimer_last_name', lastName);
+                formData.append('contact_number', contactNum);
+
+                // Append the image blob with a dynamic filename based on the item code
+                formData.append('claimProof', blob, `claim_${item.item_code}.jpg`);
+
+                try {
+                // Send payload to your endpoint
+                const response = await fetch(`${API_BASE_URL}/claims`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+                        'X-CSRF-Token': sessionStorage.getItem('csrf_token') || '' 
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Database transaction error.');
+                }
+
+                // Clean up hardware and UI using the now fully functional onClose system
+                stopClaimCamera(cameraFeed);
+                Modal.hide();
+                alert('Item successfully marked as Claimed and logged!');
+                window.location.reload(); // force clean reload to update the item status in the list
+                
+                // Refresh list if table view function exists
+                if (typeof refreshItemList === 'function') refreshItemList();
+
+            } catch (error) {
+                console.error('Submission tracking failure:', error);
+                alert(`Failed to save claim: ${error.message}`);
+                
+                // Re-enable button on error so they can try again
+                claimConfirmBtn.disabled = false;
+                claimConfirmBtn.textContent = 'Confirm Claim Item';
+            }
+        }, 'image/jpeg', 0.9);
     });
 
     // Assemble everything

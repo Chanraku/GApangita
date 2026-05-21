@@ -622,7 +622,7 @@ AFTER INSERT ON claimed_items
 FOR EACH ROW
 BEGIN
     UPDATE items
-    SET STATUS = 'resolved'
+    SET STATUS = 'closed'
     WHERE item_code = NEW.item_code;
 END$$
 
