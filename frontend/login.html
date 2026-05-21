@@ -48,25 +48,25 @@
             position: absolute;
             left: 12px;
             color: #aaa;
-            font-size: 14px;
+            font-size: 16px;
             pointer-events: none;
         }
         .form-input {
             width: 100%;
             padding: 10px 36px;
-            border: 1px solid #ddd;
+            border: 1px solid #3E2723;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 16px;
             color: #333;
             outline: none;
-            background-color: #fff;
+            background-color: #fff9f9;
         }
 
         .toggle-password {
             position: absolute;
             right: 12px;
             color: #aaa;
-            font-size: 14px;
+            font-size: 16px;
             cursor: pointer;
         }
 
@@ -74,11 +74,24 @@
             text-align: center;
             margin-bottom: 2rem;
         }
-        .login-header i {
+
+        .icon {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 2px solid #f4cdd3; /* light pink outline */
+            background-color: #fdf3f5; /* soft pink fill */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .icon i {
             font-size: 3rem;
             color: var(--color-primary);
-            margin-bottom: 1rem;
         }
+
         .login-header h2 {
             font-size: 1.8rem;
             color: var(--color-primary);
@@ -104,6 +117,11 @@
             font-size: 1rem;
             margin-top: 1rem;
         }
+
+        button[type="submit"] {
+            background-color: #ff7b8f;
+        }
+
     </style>
 </head>
 <body>
@@ -119,7 +137,9 @@
     <div class="container login-container">
         <div class="login-card">
             <div class="login-header">
-                <i class="fa-solid fa-user-lock"></i>
+                <div class="icon">
+                    <i class="fa-solid fa-user-lock"></i>
+                </div>
                 <h2>Welcome Back</h2>
                 <p>Login to your account to continue</p>
             </div>
