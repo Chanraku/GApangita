@@ -38,8 +38,7 @@ CREATE TABLE IF NOT EXISTS locations (
     DESCRIPTION VARCHAR(200)
 );
 
-DROP TABLE IF EXISTS branchLocations;
-CREATE TABLE IF NOT EXISTS branchLocations (
+CREATE TABLE IF NOT EXISTS branchLocations ( -- (Junction)
     branchLocation_id INT AUTO_INCREMENT PRIMARY KEY,
     branchLocation_code VARCHAR(15) UNIQUE,
     branch_code VARCHAR(15),
@@ -59,7 +58,7 @@ CREATE TABLE IF NOT EXISTS items (
     branch_code VARCHAR(15),
     location_code VARCHAR(15),
     -- reporter_user_code VARCHAR(15), -- REMOVED
-    reporter_file_path VARCHAR(255),
+    -- reporter_file_path VARCHAR(255), -- REMOVED
     item_file_path VARCHAR(255),
     date_found DATETIME, -- timestamp the item was found by the reporter
     date_reported DATETIME DEFAULT CURRENT_TIMESTAMP, -- timestamp the item was reported by the reporter
@@ -82,6 +81,25 @@ CREATE TABLE IF NOT EXISTS claimed_items ( -- new table
     FOREIGN KEY (item_code) REFERENCES items(item_code)
 );
 
+CREATE TABLE IF NOT EXISTS unarchived_items ( -- NEW table
+    unarchived_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    unarchived_item_code VARCHAR(15) UNIQUE,
+    item_code VARCHAR(15) NOT NULL, -- Foreign
+    date_unarchived DATETIME DEFAULT CURRENT_TIMESTAMP,
+    reason TEXT,
+    FOREIGN KEY (item_code) REFERENCES items(item_code)
+);
+
+CREATE TABLE IF NOT EXISTS unarchivedClaimed_items ( -- NEW table (Junction)
+    unarchivedClaimed_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    unarchivedClaimed_item_code VARCHAR(15) UNIQUE,
+    claimed_item_code VARCHAR(15) NOT NULL, -- Foreign
+    unarchived_item_code VARCHAR(15) NOT NULL, -- Foreign
+    FOREIGN KEY (claimed_item_code) REFERENCES claimed_items(claimed_item_code),
+    FOREIGN KEY (unarchived_item_code) REFERENCES unarchived_items(unarchived_item_code)
+);
+
+
 CREATE TABLE ID_Counters (
     TABLE_NAME VARCHAR(50) PRIMARY KEY,
     prefix VARCHAR(10) NOT NULL,
@@ -92,11 +110,13 @@ INSERT INTO ID_Counters (TABLE_NAME, prefix) VALUES
 ('logs', 'LOG'),
 ('users', 'USR'),
 ('branches', 'BRH'),
-('branchlocations', 'BRL'),
+('locations', 'LOC'),
+('branchlocations', 'BRH-LOC'),
 ('categories', 'CAT'),
 ('items', 'ITM'),
-('locations', 'LOC'),
-('claimed_items', 'CLM');
+('claimed_items', 'CLM'),
+('unarchived_items', 'UNA'),
+('unarchivedClaimed_items', 'CLM-UNA');
 
 CREATE TABLE LOGS (
     log_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -348,19 +368,10 @@ CREATE PROCEDURE sp_submit_report(
     IN p_branch_code VARCHAR(15),
     IN p_location_code VARCHAR(15),
     IN p_item_file_path VARCHAR(255),
-    IN p_reporter_file_path VARCHAR(255), -- FIXED: Added missing 8th parameter
-    IN p_date_found DATETIME               -- FIXED: Moved to 9th parameter to match your Flask code
+    IN p_date_found DATETIME
 )
 BEGIN
-    -- Declare a working variable to craft our unique item tracking code string
-    DECLARE v_item_code VARCHAR(15);
-    
-    -- Generate a clean 12-character tracking code string (e.g., ITEM-A3B9C1)
-    SET v_item_code = CONCAT('ITEM-', UPPER(SUBSTRING(MD5(RAND()), 1, 6)));
-
-    -- Execute the query matching your table column constraints
     INSERT INTO items (
-        item_code,
         NAME, 
         DESCRIPTION, 
         item_type, 
@@ -369,20 +380,17 @@ BEGIN
         branch_code, 
         location_code, 
         item_file_path,
-        reporter_file_path, -- FIXED: Column mapped safely
         date_found
     )
     VALUES (
-        v_item_code,
         p_name, 
         p_description, 
         p_item_type, 
-        'open', -- Forces default status tracking state explicitly
+        'open',
         p_category_code, 
         p_branch_code, 
         p_location_code, 
         p_item_file_path,
-        p_reporter_file_path,
         p_date_found
     );
 END$$
@@ -402,13 +410,8 @@ CREATE PROCEDURE sp_insert_into_claimed_items(
     IN p_contact_number VARCHAR(20),
     IN p_claimProof_file_path VARCHAR(255)
 )
-BEGIN
-
-    DECLARE v_claimed_item_code VARCHAR(15);
-    SET v_claimed_item_code = fn_generate_id('claimed_items');
-    
+BEGIN    
     INSERT INTO claimed_items (
-	claimed_item_code,
         item_code, 
         claimer_first_name, 
         claimer_middle_name, 
@@ -417,7 +420,6 @@ BEGIN
         claimProof_file_path
     )
     VALUES (
-	v_claimed_item_code,
         p_item_code, 
         p_claimer_first_name, 
         p_claimer_middle_name, 
@@ -427,11 +429,30 @@ BEGIN
     );
 END$$
 
--- Create Functions
--- 1
-DROP FUNCTION IF EXISTS fn_generate_id;
+DELIMITER ;
+
+-- 3
+DROP PROCEDURE IF EXISTS sp_insert_into_unarchived_items;
 
 DELIMITER $$
+
+CREATE PROCEDURE sp_insert_into_unarchived_items(
+    IN p_item_code VARCHAR(15),
+    IN p_unarchived_item_code VARCHAR(15),
+    IN p_reason TEXT
+)
+BEGIN    
+    INSERT INTO claimed_items (
+        item_code, reason
+    )
+    VALUES (
+        p_item_code, p_reason
+    );
+END$$
+
+-- Create Functions
+-- 1
+DROP FUNCTION IF EXISTS fn_generate_id$$
 
 CREATE FUNCTION fn_generate_id(
     p_table_name VARCHAR(50)
@@ -584,6 +605,42 @@ END$$
 DELIMITER ;
 
 -- 8
+-- ('unarchived_items', 'UNA'),
+
+DROP TRIGGER IF EXISTS trg_unarchived_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_unarchived_auto_id
+BEFORE INSERT ON unarchived_items
+FOR EACH ROW
+BEGIN
+    IF NEW.unarchived_item_code IS NULL THEN
+        SET NEW.unarchived_item_code = fn_generate_id('unarchived_items');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 9
+-- ('unarchivedClaimed_items', 'CLM-UNA');
+
+DROP TRIGGER IF EXISTS trg_unarchivedClaimed_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_unarchivedClaimed_auto_id
+BEFORE INSERT ON unarchivedClaimed_items
+FOR EACH ROW
+BEGIN
+    IF NEW.unarchivedClaimed_item_code IS NULL THEN
+        SET NEW.unarchivedClaimed_item_code = fn_generate_id('unarchivedClaimed_items');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 10
 DROP TRIGGER IF EXISTS trg_set_close_date;
 
 DELIMITER $$
@@ -599,7 +656,7 @@ END$$
 
 DELIMITER ;
 
--- 9
+-- 11
 DROP TRIGGER IF EXISTS trg_reset_close_date;
 
 DELIMITER $$
@@ -615,7 +672,7 @@ END$$
 
 DELIMITER ;
 
--- 10
+-- 12
 DROP TRIGGER IF EXISTS trg_claimed_items_auto_id;
 
 DELIMITER $$
@@ -631,7 +688,7 @@ END$$
 
 DELIMITER ;
 
--- 10
+-- 13
 DROP TRIGGER IF EXISTS trg_auto_resolved_claimed_items;
 
 DELIMITER $$
@@ -642,6 +699,22 @@ FOR EACH ROW
 BEGIN
     UPDATE items
     SET STATUS = 'closed'
+    WHERE item_code = NEW.item_code;
+END$$
+
+DELIMITER ;
+
+-- 14
+DROP TRIGGER IF EXISTS trg_auto_open_unarchived_items; -- NEW TRIGGER
+
+DELIMITER $$
+
+CREATE TRIGGER trg_auto_open_unarchived_items
+AFTER INSERT ON unarchived_items
+FOR EACH ROW
+BEGIN
+    UPDATE items
+    SET STATUS = 'open'
     WHERE item_code = NEW.item_code;
 END$$
 
@@ -1202,7 +1275,6 @@ INSERT INTO items (
     category_code,
     branch_code,
     location_code,
-    reporter_file_path,
     item_file_path,
     date_found,
     date_reported,
@@ -1237,7 +1309,6 @@ SELECT
     b.branch_code,
     l.location_code,
 
-    '/uploads/reporters/default_reporter.jpg' AS reporter_file_path,
     '/uploads/items/default_item.jpg' AS item_file_path,
 
     DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 10) DAY) AS date_found,
