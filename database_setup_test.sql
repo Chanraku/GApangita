@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS claimed_items ( -- new table
     claimed_item_id INT AUTO_INCREMENT PRIMARY KEY,
     claimed_item_code VARCHAR(15) UNIQUE,
     item_code VARCHAR(15) NOT NULL, -- Foreign
+    claimer_first_name VARCHAR(50) NOT NULL, -- NEW CLAIMER FIRST NAME
+    claimer_middle_name VARCHAR(50) DEFAULT NULL, -- NEW CLAIMER MIDDLE NAME
+    claimer_last_name VARCHAR(50) NOT NULL, -- NEW CLAIMER LAST NAME
     contact_number VARCHAR(20) NOT NULL,
     claimProof_file_path VARCHAR(255),
     date_claimed DATETIME DEFAULT CURRENT_TIMESTAMP,

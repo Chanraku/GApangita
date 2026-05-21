@@ -889,6 +889,9 @@ button[type="submit"] {
     width: 100%;
     max-width: 400px;
     border-radius: 12px;
+    display: block;
+    margin: 15px auto;
+    max-width: 100%;
 }
 
 .claim-preview-container {
@@ -907,6 +910,11 @@ button[type="submit"] {
     overflow: hidden;
 
     background: #f8f8f8;
+
+    align-items: center;
+    margin: 15px auto;
+    min-height: 200px;
+    border-radius: 6px;
 }
 
 .claim-preview-image {
@@ -916,11 +924,15 @@ button[type="submit"] {
     object-fit: contain;
 
     display: block;
+
+    max-width: 100%;
+    max-height: 300px;
+    height: auto;
 }
 
 .claim-preview-placeholder {
+    text-align: center;
     color: #777;
-    font-size: 14px;
 }
 
 /* If "Confirm Claim Item" button is disabled, make it look disabled */
@@ -1017,3 +1029,46 @@ button[type="submit"] {
 }
 
 /* END: ARCHIVE / RESTORE MODAL */
+
+/* ===== BEGIN: CLAIMANT INFO STYLES ===== */
+
+/* Container for the new layout fields */
+.claim-form-section {
+    margin: 15px 0;
+}
+
+/* Flexbox row to fit names beautifully on one line */
+.claim-name-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+/* Let each input column expand equally */
+.claim-field-group {
+    flex: 1;
+}
+
+.claim-field-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.claim-field-group label .required-star {
+    color: #ff4d4d;
+}
+
+.claim-field-group input {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+/* Stack the contact number smoothly underneath */
+.claim-contact-group {
+    margin-top: 8px;
+}
+
+/* ===== END: CLAIMANT INFO STYLES ===== */

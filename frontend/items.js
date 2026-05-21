@@ -122,6 +122,56 @@ function openClaimModal(item) {
     const title = document.createElement('h3');
     title.textContent = 'Claim Item';
 
+    // Form Section Container
+    const formSection = document.createElement('div');
+    formSection.className = 'claim-form-section';
+    
+    // Name Fields Row
+    const nameRow = document.createElement('div');
+    nameRow.className = 'claim-name-row';
+
+    // Helper function to build standard input structures using CSS classes
+    function buildInputField(labelText, placeholder, isRequired = true) {
+        const group = document.createElement('div');
+        group.className = 'claim-field-group';
+
+        const label = document.createElement('label');
+        label.textContent = labelText;
+
+        if (isRequired) {
+            const star = document.createElement('span');
+            star.className = 'required-star';
+            star.textContent = ' *';
+            label.appendChild(star);
+        }
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = placeholder;
+        input.className = 'form-control';
+
+        group.appendChild(label);
+        group.appendChild(input);
+        return { group, input };
+    }
+
+    // Build the fields
+    const firstNameField = buildInputField('First Name', 'First Name');
+    const middleNameField = buildInputField('Middle Name', 'Middle Name', false);
+    const lastNameField = buildInputField('Last Name', 'Last Name');
+    const contactField = buildInputField('Contact Number', 'e.g., +63 9XX XXX XXXX');
+
+    // Add custom class identifier specifically for the standalone contact row
+    contactField.group.classList.add('claim-contact-group');
+
+    // Append items down into structural containers
+    nameRow.appendChild(firstNameField.group);
+    nameRow.appendChild(middleNameField.group);
+    nameRow.appendChild(lastNameField.group);
+
+    formSection.appendChild(nameRow);
+    formSection.appendChild(contactField.group);
+
     // Button Container
     const buttonRow = document.createElement('div');
     buttonRow.className = 'claim-button-row';
@@ -230,6 +280,7 @@ function openClaimModal(item) {
     // Assemble everything
     wrapper.appendChild(backBtn);
     wrapper.appendChild(title);
+    wrapper.appendChild(formSection);
     wrapper.appendChild(buttonRow);
     wrapper.appendChild(cameraFeed);
     wrapper.appendChild(closeCameraBtn);
@@ -239,10 +290,39 @@ function openClaimModal(item) {
     wrapper.appendChild(removePreviewBtn);
     wrapper.appendChild(claimConfirmBtn);
 
+    // Ensure camera stream is stopped if modal is closed by other means
+    wrapper.addEventListener('DOMNodeRemovedFromDocument', () => {
+        if (cameraFeed) {
+            stopClaimCamera(cameraFeed);
+        }
+    });
+
     Modal.show({
         title: '',
-        node: wrapper
+        node: wrapper,
+        // Close Camera Upon Modal Close
+        onClose: () => {
+            if (cameraFeed) {
+                stopClaimCamera(cameraFeed);
+            }
+        }
     });
+    
+    // TEMPORARY FIX FOR CAMERA NOT STOPPING ON MODAL CLOSE: Listen for the modal's close button click to stop the camera
+    // Additional safety: Listen for clicks outside the modal to detect if user clicks the backdrop to close it, and stop camera if so
+    window.addEventListener('click', function handleModalClose(e) {
+        setTimeout(() => {
+            const isHidden = wrapper.offsetParent === null;
+            const isRemoved = !document.body.contains(wrapper);
+
+            if (isHidden || isRemoved) {
+                console.log("Detected modal closure via screen click! Stopping camera...");
+                stopClaimCamera(cameraFeed);
+                window.removeEventListener('click', handleModalClose);
+            }
+        }, 100);
+    });
+
 }
 
 function openRestoreItemModal(item) {
