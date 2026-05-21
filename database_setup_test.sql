@@ -54,18 +54,32 @@ CREATE TABLE IF NOT EXISTS items (
     NAME VARCHAR(255) NOT NULL,
     DESCRIPTION TEXT,
     item_type ENUM('lost', 'found') NOT NULL,
-    STATUS ENUM('open', 'resolved') DEFAULT 'open',
+    STATUS ENUM('open', 'resolved', 'closed') DEFAULT 'open',
     category_code VARCHAR(15),
     branch_code VARCHAR(15),
     location_code VARCHAR(15),
-    reporter_user_code VARCHAR(15),
-    file_path VARCHAR(255),
-    date_reported DATETIME DEFAULT CURRENT_TIMESTAMP,
+    -- reporter_user_code VARCHAR(15), -- REMOVED
+    reporter_file_path VARCHAR(255),
+    item_file_path VARCHAR(255),
+    date_found DATETIME, -- timestamp the item was found by the reporter
+    date_reported DATETIME DEFAULT CURRENT_TIMESTAMP, -- timestamp the item was reported by the reporter
     close_at DATETIME,
     FOREIGN KEY (category_code) REFERENCES categories(category_code) ON DELETE SET NULL,
     FOREIGN KEY (branch_code) REFERENCES branches(branch_code) ON DELETE SET NULL,
-    FOREIGN KEY (location_code) REFERENCES locations(location_code) ON DELETE SET NULL,
-    FOREIGN KEY (reporter_user_code) REFERENCES users(user_code) ON DELETE CASCADE
+    FOREIGN KEY (location_code) REFERENCES locations(location_code) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS claimed_items ( -- new table
+    claimed_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    claimed_item_code VARCHAR(15) UNIQUE,
+    item_code VARCHAR(15) NOT NULL, -- Foreign
+    claimer_first_name VARCHAR(50) NOT NULL, -- NEW CLAIMER FIRST NAME
+    claimer_middle_name VARCHAR(50) DEFAULT NULL, -- NEW CLAIMER MIDDLE NAME
+    claimer_last_name VARCHAR(50) NOT NULL, -- NEW CLAIMER LAST NAME
+    contact_number VARCHAR(20) NOT NULL,
+    claimProof_file_path VARCHAR(255),
+    date_claimed DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_code) REFERENCES items(item_code)
 );
 
 CREATE TABLE ID_Counters (
@@ -74,14 +88,15 @@ CREATE TABLE ID_Counters (
     last_number INT NOT NULL DEFAULT 0
 );
 
-INSERT INTO ID_Counters (TABLE_NAME, prefix, last_number) VALUES
-('logs', 'LOG', 0),
-('users', 'USR', 0),
-('branches', 'BRH', 0),
-('branchlocations', 'BRL', 0),
-('categories', 'CAT', 0),
-('items', 'ITM', 0),
-('locations', 'LOC', 0);
+INSERT INTO ID_Counters (TABLE_NAME, prefix) VALUES
+('logs', 'LOG'),
+('users', 'USR'),
+('branches', 'BRH'),
+('branchlocations', 'BRL'),
+('categories', 'CAT'),
+('items', 'ITM'),
+('locations', 'LOC'),
+('claimed_items', 'CLM');
 
 CREATE TABLE LOGS (
     log_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -117,9 +132,8 @@ SELECT
 	i.location_code,
 	l.name AS `locationName`,
 	l.description AS `locationDescription`,
-	i.reporter_user_code,
-	u.username AS `reporter_username`,
-	i.file_path,
+	i.item_file_path,
+	i.date_found,
 	i.date_reported	
 FROM items AS i
 LEFT JOIN categories AS c
@@ -128,8 +142,6 @@ LEFT JOIN branches AS b
 	ON i.branch_code = b.branch_code
 LEFT JOIN locations AS l
 	ON i.location_code = l.location_code
-LEFT JOIN users AS u
-	ON i.reporter_user_code = u.username
 WHERE STATUS = 'open';
 -- SELECT * FROM vw_openAllItems;
 
@@ -151,9 +163,8 @@ SELECT
 	i.location_code,
 	l.name AS `locationName`,
 	l.description AS `locationDescription`,
-	i.reporter_user_code,
-	u.username AS `reporter_username`,
-	i.file_path,
+	i.item_file_path,
+	i.date_found,
 	i.date_reported	
 FROM items AS i
 LEFT JOIN categories AS c
@@ -162,8 +173,6 @@ LEFT JOIN branches AS b
 	ON i.branch_code = b.branch_code
 LEFT JOIN locations AS l
 	ON i.location_code = l.location_code
-LEFT JOIN users AS u
-	ON i.reporter_user_code = u.username
 WHERE STATUS = 'open' AND item_type = 'lost';
 -- SELECT * FROM vw_openLostItems;
 
@@ -185,9 +194,8 @@ SELECT
 	i.location_code,
 	l.name AS `locationName`,
 	l.description AS `locationDescription`,
-	i.reporter_user_code,
-	u.username AS `reporter_username`,
-	i.file_path,
+	i.item_file_path,
+	i.date_found,
 	i.date_reported	
 FROM items AS i
 LEFT JOIN categories AS c
@@ -196,8 +204,6 @@ LEFT JOIN branches AS b
 	ON i.branch_code = b.branch_code
 LEFT JOIN locations AS l
 	ON i.location_code = l.location_code
-LEFT JOIN users AS u
-	ON i.reporter_user_code = u.username
 WHERE STATUS = 'open' AND item_type = 'found';
 -- SELECT * FROM vw_openFoundItems;
 
@@ -219,9 +225,8 @@ SELECT
 	i.location_code,
 	l.name AS `locationName`,
 	l.description AS `locationDescription`,
-	i.reporter_user_code,
-	u.username AS `reporter_username`,
-	i.file_path,
+	i.item_file_path,
+	i.date_found,
 	i.date_reported	
 FROM items AS i
 LEFT JOIN categories AS c
@@ -230,8 +235,6 @@ LEFT JOIN branches AS b
 	ON i.branch_code = b.branch_code
 LEFT JOIN locations AS l
 	ON i.location_code = l.location_code
-LEFT JOIN users AS u
-	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed';
 -- SELECT * FROM vw_closedAllItems;
 
@@ -253,9 +256,8 @@ SELECT
 	i.location_code,
 	l.name AS `locationName`,
 	l.description AS `locationDescription`,
-	i.reporter_user_code,
-	u.username AS `reporter_username`,
-	i.file_path,
+	i.item_file_path,
+	i.date_found,
 	i.date_reported	
 FROM items AS i
 LEFT JOIN categories AS c
@@ -264,8 +266,6 @@ LEFT JOIN branches AS b
 	ON i.branch_code = b.branch_code
 LEFT JOIN locations AS l
 	ON i.location_code = l.location_code
-LEFT JOIN users AS u
-	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed' AND item_type = 'lost';
 -- SELECT * FROM vw_closedLostItems;
 
@@ -287,9 +287,8 @@ SELECT
 	i.location_code,
 	l.name AS `locationName`,
 	l.description AS `locationDescription`,
-	i.reporter_user_code,
-	u.username AS `reporter_username`,
-	i.file_path,
+	i.item_file_path,
+	i.date_found,
 	i.date_reported	
 FROM items AS i
 LEFT JOIN categories AS c
@@ -298,8 +297,6 @@ LEFT JOIN branches AS b
 	ON i.branch_code = b.branch_code
 LEFT JOIN locations AS l
 	ON i.location_code = l.location_code
-LEFT JOIN users AS u
-	ON i.reporter_user_code = u.username
 WHERE STATUS = 'closed' AND item_type = 'found';
 -- SELECT * FROM vw_closedFoundItems;
 
@@ -350,16 +347,65 @@ CREATE PROCEDURE sp_submit_report(
     IN p_category_code VARCHAR(15),
     IN p_branch_code VARCHAR(15),
     IN p_location_code VARCHAR(15),
-    IN p_reporter_user_code VARCHAR(15)
+    IN p_item_file_path VARCHAR(255),
+    IN p_reporter_file_path VARCHAR(255), -- FIXED: Added missing 8th parameter
+    IN p_date_found DATETIME               -- FIXED: Moved to 9th parameter to match your Flask code
 )
 BEGIN
-    INSERT INTO items (NAME, DESCRIPTION, item_type, category_code, branch_code, location_code, reporter_user_code)
-    VALUES (p_name, p_description, p_item_type, p_category_code, p_branch_code, p_location_code, p_reporter_user_code);
+    -- Declare a working variable to craft our unique item tracking code string
+    DECLARE v_item_code VARCHAR(15);
+    
+    -- Generate a clean 12-character tracking code string (e.g., ITEM-A3B9C1)
+    SET v_item_code = CONCAT('ITEM-', UPPER(SUBSTRING(MD5(RAND()), 1, 6)));
+
+    -- Execute the query matching your table column constraints
+    INSERT INTO items (
+        item_code,
+        NAME, 
+        DESCRIPTION, 
+        item_type, 
+        STATUS,
+        category_code, 
+        branch_code, 
+        location_code, 
+        item_file_path,
+        reporter_file_path, -- FIXED: Column mapped safely
+        date_found
+    )
+    VALUES (
+        v_item_code,
+        p_name, 
+        p_description, 
+        p_item_type, 
+        'open', -- Forces default status tracking state explicitly
+        p_category_code, 
+        p_branch_code, 
+        p_location_code, 
+        p_item_file_path,
+        p_reporter_file_path,
+        p_date_found
+    );
 END$$
 
 DELIMITER ;
 
 -- 2
+DROP PROCEDURE IF EXISTS sp_insert_into_claimed_items;
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_insert_into_claimed_items(
+    IN p_item_code VARCHAR(15),
+    IN p_contact_number VARCHAR(20),
+    IN p_claimProof_file_path VARCHAR(255),
+    IN p_date_claimed DATETIME
+)
+BEGIN
+    INSERT INTO claimed_items (item_code, contact_number, claimProof_file_path, date_claimed)
+    VALUES (p_item_code, p_contact_number, p_claimProof_file_path, p_date_claimed);
+END$$
+
+DELIMITER ;
 
 
 -- Create Functions
@@ -548,10 +594,45 @@ BEGIN
     END IF;
 END$$
 
+DELIMITER ;
+
+-- 10
+DROP TRIGGER IF EXISTS trg_claimed_items_auto_id;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_claimed_items_auto_id
+BEFORE INSERT ON claimed_items
+FOR EACH ROW
+BEGIN
+    IF NEW.claimed_item_code IS NULL THEN
+        SET NEW.claimed_item_code = fn_generate_id('claimed_items');
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- 10
+DROP TRIGGER IF EXISTS trg_auto_resolved_claimed_items;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_auto_resolved_claimed_items
+AFTER INSERT ON claimed_items
+FOR EACH ROW
+BEGIN
+    UPDATE items
+    SET STATUS = 'resolved'
+    WHERE item_code = NEW.item_code;
+END$$
+
+DELIMITER ;
+
 /* =========================================================
    LOGGING TRIGGERS
    ========================================================= */
 
+DELIMITER $$
 
 /* =========================================================
    USERS
@@ -936,7 +1017,6 @@ BEGIN
             ', Category=', NEW.category_code,
             ', Branch=', NEW.branch_code,
             ', Location=', NEW.location_code,
-            ', Reporter User=', NEW.reporter_user_code,
             ', Description=', NEW.description        
         ),
         NOW()
@@ -1010,6 +1090,8 @@ DELIMITER ;
 
 SET GLOBAL event_scheduler = OFF;
 SET GLOBAL event_scheduler = ON;
+
+DROP EVENT IF EXISTS ev_auto_close_items;
 
 -- 1
 DELIMITER $$
@@ -1087,7 +1169,7 @@ INSERT IGNORE INTO branchLocations (branch_code, location_code) VALUES
 
 -- Insert users
 INSERT IGNORE INTO users (user_role, username, email, PASSWORD, contact_number) VALUES
-('Admin', 'Admin123', 'admin@gapangita.local', '$2b$12$SIZ70qTKnwZoab81FHOXKeFHrL8zMbi8UokSp8q8elLVuL.gxYkMS', '0000000000'), -- Pass is Admin123
+('Admin', 'Admin123', 'admin123@gapangita.local', '$2b$12$SIZ70qTKnwZoab81FHOXKeFHrL8zMbi8UokSp8q8elLVuL.gxYkMS', '0000000000'), -- Pass is Admin123
 ('Admin', 'Admin', 'admin@gapangita.local', 'Admin', '0000000001');
 -- ('Staff', 'Staff123', 'staff@gapangita.local', 'Staff123', '0000000001'),
 -- ('Staff', 'Anonymous', 'anonymous@gapangita.local', 'password123', '0000000002');
@@ -1101,7 +1183,11 @@ INSERT INTO items (
     category_code,
     branch_code,
     location_code,
-    reporter_user_code
+    reporter_file_path,
+    item_file_path,
+    date_found,
+    date_reported,
+    close_at
 )
 SELECT
     CONCAT(
@@ -1132,7 +1218,13 @@ SELECT
     b.branch_code,
     l.location_code,
 
-    'USR0001' AS reporter_user_code   -- your Admin123 seeded user
+    '/uploads/reporters/default_reporter.jpg' AS reporter_file_path,
+    '/uploads/items/default_item.jpg' AS item_file_path,
+
+    DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 10) DAY) AS date_found,
+    NOW() AS date_reported,
+    NULL AS close_at
+
 FROM categories c
 CROSS JOIN branches b
 JOIN branchLocations bl
@@ -1144,15 +1236,15 @@ JOIN locations l
 -- DCL Statements
 
 -- User
-CREATE USER 'viewer_user'@'localhost'
+CREATE USER IF NOT EXISTS 'viewer_user'@'localhost'
 IDENTIFIED BY 'Viewer123!';
 
 GRANT SELECT ON gapangita_db_test.* TO 'viewer_user'@'localhost';
 FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'viewer_user'@'localhost';
+-- SHOW GRANTS FOR 'viewer_user'@'localhost';
 
 -- Staff
-CREATE USER 'staff_user'@'localhost'
+CREATE USER IF NOT EXISTS 'staff_user'@'localhost'
 IDENTIFIED BY 'Staff123!';
 
 GRANT SELECT ON gapangita_db_test.vw_categories TO 'staff_user'@'localhost';
@@ -1163,10 +1255,10 @@ GRANT SELECT ON gapangita_db_test.vw_branchLocations TO 'staff_user'@'localhost'
 GRANT EXECUTE ON PROCEDURE gapangita_db_test.sp_submit_report TO 'staff_user'@'localhost';
 
 FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'staff_user'@'localhost';
+-- SHOW GRANTS FOR 'staff_user'@'localhost';
 
 -- Admin
-CREATE USER 'admin_user'@'localhost'
+CREATE USER IF NOT EXISTS 'admin_user'@'localhost'
 IDENTIFIED BY 'Admin123!';
 
 GRANT SELECT ON gapangita_db_test.* TO 'admin_user'@'localhost';
@@ -1178,14 +1270,14 @@ GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.locations TO 'admin_user'@'loc
 GRANT INSERT, UPDATE, DELETE ON gapangita_db_test.branchLocations TO 'admin_user'@'localhost';
 
 FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'admin_user'@'localhost';
+-- SHOW GRANTS FOR 'admin_user'@'localhost';
 
 -- Super Admin (gapangita_user)
-CREATE USER 'gapangita_user'@'localhost'
+CREATE USER IF NOT EXISTS 'gapangita_user'@'localhost'
 IDENTIFIED BY 'Gapangita_Secure_123!';
 
 GRANT ALL PRIVILEGES ON gapangita_db_test.* TO 'gapangita_user'@'localhost';
 -- GRANT ALL PRIVILEGES ON *.* TO 'gapangita_user'@'localhost';
 -- Use the above sql one if the first grant query doesn't work (when it returns "error": "1044 (42000): Access denied for user 'gapangita_user'@'localhost' to database 'gapangita_db_test'")
 FLUSH PRIVILEGES;
-SHOW GRANTS FOR 'gapangita_user'@'localhost';
+-- SHOW GRANTS FOR 'gapangita_user'@'localhost';
