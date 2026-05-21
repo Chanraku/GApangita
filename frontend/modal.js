@@ -71,3 +71,30 @@ const Modal = (() => {
 
     return { show, hide };
     })();
+
+
+function showErrorModal(titleText, messageText, onCloseCallback = null) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'modal-error-wrapper';
+
+    const icon = document.createElement('div');
+    icon.className = 'modal-error__icon';
+    icon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+
+    const title = document.createElement('h3');
+    title.className = 'modal-error__title';
+    title.textContent = titleText;
+
+    const message = document.createElement('p');
+    message.className = 'modal-error__message';
+    message.textContent = messageText;
+
+    wrapper.append(icon, title, message);
+
+    Modal.show({
+        title: '',                     
+        node: wrapper,                 
+        confirmText: 'Understood',     
+        onClose: onCloseCallback       
+    });
+}

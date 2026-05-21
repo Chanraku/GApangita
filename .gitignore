@@ -16,6 +16,8 @@ backend/uploads/*
 
 backend/uploads/items/*
 backend/uploads/reporters/*
+backend/uploads/claimant/*
 
 !backend/uploads/items/.gitkeep
 !backend/uploads/reporters/.gitkeep
+!backend/uploads/claimant/.gitkeep
