@@ -36,15 +36,13 @@ db_config = {
     'database': 'gapangita_db_test'
 }
 
-# FOR ITEM AND REPORTER CAMERA
+# FOR ITEM AND CLAIMANT CAMERA
 UPLOAD_FOLDER = 'uploads'
 
 ITEM_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'items')
-REPORTER_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'reporters')
 CLAIMANT_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'claimant')
 
 os.makedirs(ITEM_UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(REPORTER_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLAIMANT_UPLOAD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -52,8 +50,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # ================================
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 MAX_DESCRIPTION_LENGTH = 1000
 ALLOWED_ITEM_TYPES = ['lost', 'found']
@@ -194,9 +190,8 @@ def report_item():
     description = data.get('description', '').strip()
     item_type = data.get('item_type', '').lower().strip()
     item_image = request.files.get('item_image')
-    reporter_image = request.files.get('reporter_image')
 
-    # ADDED: Extract date_found parameter from the frontend FormData payload
+    # Extract date_found parameter from the frontend FormData payload
     date_found = data.get('date_found')
     if date_found and date_found.strip() == "":
         date_found = None
@@ -226,6 +221,7 @@ def report_item():
     
     item_file_path = None
 
+    # Save item image
     if item_image and allowed_file(item_image.filename):
         ext = item_image.filename.rsplit('.', 1)[1].lower()
         filename = f"item_{uuid.uuid4().hex}.{ext}"
@@ -242,8 +238,9 @@ def report_item():
         cursor = conn.cursor()
         set_db_user_context(cursor)
         
+        # Kept the same query footprint to honor the MySQL procedure blueprint setup without crashing parameter count validations
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             name,
@@ -253,6 +250,7 @@ def report_item():
             data.get('branch_code') if data.get('branch_code') else None,
             data.get('location_code') if data.get('location_code') else None,
             item_file_path,
+            None,
             date_found
         )
         
@@ -343,7 +341,6 @@ def search_openItems():
         cursor.execute(base_query, params)
         items = cursor.fetchall()
 
-        
         # Apply Levenshtein distance and convert to percentage similarity
         for item in items:
             sim_name = 0
@@ -403,7 +400,7 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        #ONLY search by username
+        # ONLY search by username
         query = """
             SELECT * FROM vw_userLogin
             WHERE username = %s
@@ -561,8 +558,7 @@ def process_item_claim():
         if conn and conn.is_connected():
             conn.close()
 
-# This GET endpoint allows clients to retrieve claim details for a specific item code, 
-# with standard session-based authorization checks and CORS preflight handling.
+# This GET endpoint allows clients to retrieve claim details for a specific item code
 @app.route('/api/claims/<item_code>', methods=['GET', 'OPTIONS'])
 def get_item_claim_details(item_code):
     # Handle the browser preflight request instantly
