@@ -13,104 +13,107 @@ function formatDetails(item) {
 }
 
 function buildItemDetails(item, options = {}) {
+
+    if (window.location.pathname.includes('archive.html')) {
+        options.isArchivePage = true;
+    }
+
     console.log("DATABASE ROW OBJECT IS:", item);
 
     const container = document.createElement('div');
     container.className = 'item-modal';
 
-    // IMAGE
+    // IMAGE CONTAINER
     const imgWrapper = document.createElement('div');
     imgWrapper.className = 'item-modal__image-wrapper';
 
     const img = document.createElement('img');
 
-    if (item.item_file_path) {
-            const cleanPath = item.item_file_path.replace(/^\/+/, '');
-            const imgBase = API_BASE_URL.replace(/\/api$/, '');
-            img.src = `${imgBase}/uploads/${cleanPath}`;
-        } else {
-            img.src = 'assets/placeholder.png';
-        }
+    const itemImagePath = item.item_file_path || item.file_path || item.item_image;
 
-        img.onerror = () => {
-            img.onerror = null;
-            img.src = 'assets/placeholder.png';
-        };
-
-    img.alt = item.name || 'Item image';
-    img.className = 'item-modal__image';
-
-    // Append image to its wrapper first to maintain consistent layout even if image fails to load
-    imgWrapper.appendChild(img);
-
-    // CONDITIONALLY APPEND CLAIMANT DETAILS BUTTON FOR ARCHIVED ITEMS
-    const lowerStatus = (item.status || '').toLowerCase();
-    if (options.isArchivePage && (lowerStatus === 'closed' || lowerStatus === 'resolved')) {
-        const claimantDetailsBtn = document.createElement('button');
-        claimantDetailsBtn.type = 'button';
-        claimantDetailsBtn.textContent = '📄 View Claimant Details';
-        claimantDetailsBtn.className = 'btn btn-secondary item-modal__claimant-btn';
-        
-        claimantDetailsBtn.addEventListener('click', () => {
-            Modal.hide(); // Clears current modal window view layout safely
-            setTimeout(() => {
-                openClaimantDetailsModal(item, options); // Pass options downstream to retain state parameters
-            }, 50);
-        });
-        
-        imgWrapper.appendChild(claimantDetailsBtn);
+    if (itemImagePath && itemImagePath.trim() !== '') {
+        const cleanPath = itemImagePath.replace(/^\/+/, '');
+        const imgBase = API_BASE_URL.replace(/\/api$/, '');
+        img.src = `${imgBase}/uploads/${cleanPath}`;
+    } else {
+        img.src = 'assets/placeholder.png';
     }
 
-    const content = document.createElement('div');
+    img.onerror = () => { img.onerror = null; img.src = 'assets/placeholder.png'; };
+    img.alt = item.name || 'Item image';
+    img.className = 'item-modal__image';
+    imgWrapper.appendChild(img);
 
+    // CONTENT WRAPPER
+    const content = document.createElement('div');
     content.className = 'item-modal__content';
-    content.innerHTML = `
+
+    const detailsText = document.createElement('div');
+    detailsText.innerHTML = `
         <p><strong>Name:</strong> ${escapeHtml(item.name)}</p>
-        <p><strong>Status:</strong> ${escapeHtml(item.status || 'N/A')}</p>
         <p><strong>Type:</strong> ${escapeHtml(item.item_type)}</p>
         <p><strong>Category:</strong> ${escapeHtml(item.categoryName || 'N/A')}</p>
         <p><strong>Branch:</strong> ${escapeHtml(item.branchName || 'N/A')}</p>
         <p><strong>Location:</strong> ${escapeHtml(item.locationName || 'N/A')}</p>
-
-        <p>
-            <strong>Description:</strong><br>
-            ${escapeHtml(item.description || 'No description provided.')}
-        </p>
-
-        <p>
-            <strong>Date Found:</strong><br>
-            ${formatWithoutTimezone(item.date_found)}
-        </p>
-
-        <p>
-            <strong>Date Reported:</strong><br>
-            ${formatWithoutTimezone(item.date_reported)}
-        </p>
+        <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p>
+        <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p>
+        <p><strong>Date Reported:</strong><br>${formatWithoutTimezone(item.date_reported)}</p>
     `;
+    content.appendChild(detailsText);
 
-    container.appendChild(img);
+    container.appendChild(imgWrapper);
     container.appendChild(content);
 
-    // ACTION BUTTON
-    if (window.AppState?.isAuthenticated && options.actionButton) {
-
+    // ACTION FOOTER CONTAINER
+    if (window.AppState?.isAuthenticated) {
         const actions = document.createElement('div');
         actions.className = 'item-modal__actions';
-        const actionBtn = document.createElement('button');
-        actionBtn.type = 'button';
-        actionBtn.textContent = options.actionButton.text || 'Action';
-        actionBtn.className = options.actionButton.className || 'btn btn-primary';
-        actionBtn.addEventListener('click', () => {
-            if (options.actionButton.onClick) {
-                options.actionButton.onClick(item);
-            }
-        });
+        actions.style.display = 'flex';
+        actions.style.flexDirection = 'column';
+        actions.style.gap = '10px';
+        actions.style.marginTop = '15px';
+
+        // Add standard action button if passed down (e.g., Restore Item)
+        if (options.actionButton) {
+            const actionBtn = document.createElement('button');
+            actionBtn.type = 'button';
+            actionBtn.textContent = options.actionButton.text || 'Action';
+            actionBtn.className = options.actionButton.className || 'btn btn-primary';
+            actionBtn.style.width = '100%';
+            actionBtn.addEventListener('click', () => {
+                if (options.actionButton.onClick) {
+                    options.actionButton.onClick(item, options);
+                }
+            });
             actions.appendChild(actionBtn);
-            container.appendChild(actions);
         }
 
-    return container;
+        // FIX: Place Claimant button right underneath/beside the standard option button
+        if (options.isArchivePage) {
+            const claimantDetailsBtn = document.createElement('button');
+            claimantDetailsBtn.type = 'button';
+            claimantDetailsBtn.textContent = 'View Claimant Details';
+            claimantDetailsBtn.className = 'btn btn-secondary item-modal__claimant-btn';
+            claimantDetailsBtn.style.width = '100%';
+            
+            claimantDetailsBtn.addEventListener('click', () => {
+                Modal.hide(); 
+                setTimeout(() => {
+                    openClaimantDetailsModal(item, options); 
+                }, 50);
+            });
+            
+            actions.appendChild(claimantDetailsBtn);
+        }
+
+        // Only append container if we actually added buttons into it
+        if (actions.children.length > 0) {
+            container.appendChild(actions);
+        }
     }
+
+    return container;
+}
 
 function showItemDetails(item, options = {}) {
     Modal.show({
@@ -454,7 +457,8 @@ function openClaimantDetailsModal(item, options = {}) {
     backBtn.className = 'btn';
     backBtn.addEventListener('click', () => {
         Modal.hide();
-        setTimeout(() => { showItemDetails(item, options); }, 50); });
+        setTimeout(() => { showItemDetails(item, options); }, 50); 
+    });
 
     const title = document.createElement('h3');
     title.className = 'claimant-details__title';
@@ -467,53 +471,66 @@ function openClaimantDetailsModal(item, options = {}) {
     wrapper.append(backBtn, title, loadingText);
     Modal.show({ title: '', node: wrapper });
 
-    // Request data details safely from the backend database endpoint using the unique foreign code reference mapping
+    // FIX: Added credentials configuration to route authentication parameters safely
     fetch(`${API_BASE_URL}/claims/${item.item_code}`, {
         method: 'GET',
+        credentials: 'include',
         headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+            'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
         }
     })
-
     .then(res => {
-        if (!res.ok) throw new Error('Claim tracking records for this code identification index could not be located.');
+        if (!res.ok) throw new Error('Claim tracking records for this item index could not be located.');
         return res.json();
     })
-
     .then(claimData => {
-        loadingText.remove();
+            loadingText.remove();
 
-        const infoCard = document.createElement('div');
-        infoCard.className = 'claimant-info-card';
+            const infoCard = document.createElement('div');
+            infoCard.className = 'claimant-info-card';
 
-        const middleInitial = claimData.claimer_middle_name ? ` ${escapeHtml(claimData.claimer_middle_name)}` : '';
-        const fullName = `${escapeHtml(claimData.claimer_first_name)}${middleInitial} ${escapeHtml(claimData.claimer_last_name)}`;
+            const middleInitial = claimData.claimer_middle_name ? ` ${escapeHtml(claimData.claimer_middle_name)}` : '';
+            const fullName = `${escapeHtml(claimData.claimer_first_name)}${middleInitial} ${escapeHtml(claimData.claimer_last_name)}`;
 
-        let proofImgHtml = `<p class="claimant-details__no-image"><em>No verification snapshot recorded on file logs.</em></p>`;
-        if (claimData.claimProof_file_path) {
-            const cleanPath = claimData.claimProof_file_path.replace(/^\/+/, '');
-            const imgBase = API_BASE_URL.replace(/\/api$/, '');
-            proofImgHtml = `
-                <div class="claimant-details__image-container">
-                    <p><strong>Identity Verification Snapshot:</strong></p>
-                    <img src="${imgBase}/uploads/${cleanPath}" alt="Claim Verification Image" class="claimant-details__proof-img" />
-                </div>`;
-        }
+            // NEW CHANGE: Robust path lookup to ensure zero property mismatch crashes
+            let rawImagePath = claimData.claimProof_file_path || claimData.claimProof || claimData.file_path;
+            if (!rawImagePath) {
+                const matchingKey = Object.keys(claimData).find(k => k.toLowerCase().includes('proof') || k.toLowerCase().includes('path'));
+                if (matchingKey) rawImagePath = claimData[matchingKey];
+            }
 
-        //<p><strong>Claim Tracking Reference ID:</strong> ${escapeHtml(claimData.claimed_item_code || 'N/A')}</p>
-        infoCard.innerHTML = `
-            <p><strong>Full Name of Claimant:</strong> ${fullName}</p>
-            <p><strong>Contact Number:</strong> ${escapeHtml(claimData.contact_number)}</p>
-            <p><strong>Transaction Time:</strong> ${formatWithoutTimezone(claimData.date_claimed)}</p>
-            <hr class="claimant-details__divider" />
-            ${proofImgHtml}
-        `;
-        
-        wrapper.appendChild(infoCard);
-    })
+            let proofImgHtml = `<p class="claimant-details__no-image"><em>No verification snapshot recorded on file logs.</em></p>`;
+            
+            // FIX: The condition now checks rawImagePath instead of the static claimData property path
+            if (rawImagePath && rawImagePath.trim() !== '') {
+                const cleanPath = rawImagePath.replace(/^\/+/, '');
+                const imgBase = API_BASE_URL.replace(/\/api$/, '');
+                proofImgHtml = `
+                    <div class="claimant-details__image-container">
+                        <p><strong>Identity Verification Snapshot:</strong></p>
+                        <img src="${imgBase}/uploads/${cleanPath}" alt="Claim Verification Image" class="claimant-details__proof-img" />
+                    </div>`;
+            }
+
+            infoCard.innerHTML = `
+                <p><strong>Full Name of Claimant:</strong> ${fullName}</p>
+                <p><strong>Contact Number:</strong> ${escapeHtml(claimData.contact_number)}</p>
+                <p><strong>Transaction Time:</strong> ${formatWithoutTimezone(claimData.date_claimed)}</p>
+                <hr class="claimant-details__divider" />
+                ${proofImgHtml}
+            `;
+            
+            wrapper.appendChild(infoCard);
+        })
     .catch(err => {
-        loadingText.textContent = `Error: ${err.message}`;
-        loadingText.className = 'claimant-details__error';
+        // FIX: Leverages your uniform error layout structure instead of plain text dumps
+        wrapper.innerHTML = ''; 
+        wrapper.appendChild(backBtn);
+        showErrorModal(
+            'Retrieval Error',
+            `Could not read archive logs: ${err.message}`
+        );
     });
 }
 
@@ -600,6 +617,7 @@ function openRestoreItemModal(item) {
         setTimeout(() => {
 
             showItemDetails(item, {
+                isArchivePage: true,
                 actionButton: {
                     text: 'Restore Item',
                     className: 'btn btn-primary',

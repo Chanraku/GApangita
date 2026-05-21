@@ -574,5 +574,41 @@ def process_item_claim():
         if conn and conn.is_connected():
             conn.close()
 
+# This GET endpoint allows clients to retrieve claim details for a specific item code, 
+# with standard session-based authorization checks and CORS preflight handling.
+@app.route('/api/claims/<item_code>', methods=['GET', 'OPTIONS'])
+def get_item_claim_details(item_code):
+    # Handle the browser preflight request instantly
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'CORS preflight ok'}), 200
+
+    # Enforce standard session authorization checks
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized view request.'}), 401
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Simple directional lookup target filtering by item_code keys
+        query = "SELECT * FROM claimed_items WHERE item_code = %s"
+        cursor.execute(query, (item_code,))
+        claim_record = cursor.fetchone()
+
+        if not claim_record:
+            return jsonify({'error': 'No matching transaction logs tracking this item.'}), 404
+
+        return jsonify(claim_record), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Server pipeline tracking crash: {str(e)}'}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
