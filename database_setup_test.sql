@@ -442,7 +442,7 @@ CREATE PROCEDURE sp_insert_into_unarchived_items(
     IN p_reason TEXT
 )
 BEGIN    
-    INSERT INTO claimed_items (
+    INSERT INTO unarchived_items (
         item_code, reason
     )
     VALUES (
@@ -716,6 +716,26 @@ BEGIN
     UPDATE items
     SET STATUS = 'open'
     WHERE item_code = NEW.item_code;
+END$$
+
+DELIMITER ;
+
+-- 15
+DROP TRIGGER IF EXISTS trg_auto_remove_claimed_when_unarchived; -- NEW TRIGGER
+
+DELIMITER $$
+
+CREATE TRIGGER trg_auto_remove_claimed_when_unarchived
+AFTER UPDATE ON items
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'open'
+       AND OLD.status = 'closed' THEN
+
+        DELETE FROM items
+        WHERE item_code = NEW.item_code;
+
+    END IF;
 END$$
 
 DELIMITER ;

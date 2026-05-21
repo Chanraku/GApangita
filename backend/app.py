@@ -459,7 +459,7 @@ def report_item():
         
         # Kept procedure arguments perfectly balanced
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             name,
@@ -469,7 +469,6 @@ def report_item():
             data.get('branch_code') if data.get('branch_code') else None,
             data.get('location_code') if data.get('location_code') else None,
             item_file_path,
-            None,  # FIX: Passes None (MySQL NULL) safely into reporter_file_path column argument
             date_found  
         )
         
@@ -477,7 +476,7 @@ def report_item():
         conn.commit()
         return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
     finally:
         if 'cursor' in locals():
             cursor.close()
@@ -539,7 +538,7 @@ def process_item_claim():
     except Exception as e:
         if conn:
             conn.rollback()
-        return jsonify({'message': f'Database processing failure: {str(e)}'}), 500
+        return jsonify({'message': 'Internal Server Error'}), 500
 
     finally:
         if cursor:
@@ -572,6 +571,46 @@ def get_item_claim_details(item_code):
 
     except Exception as e:
         return jsonify({'error': f'Server pipeline tracking crash: {str(e)}'}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+@app.route('/api/items/unarchive', methods=['POST'])
+def unarchive_item():
+    # Enforce Authentication & CSRF Controls
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized view request.'}), 401
+    if not validate_csrf():
+        return jsonify({'error': 'Invalid CSRF token'}), 403
+
+    data = request.json
+    item_code = data.get('item_code', '').strip()
+    reason = data.get('reason', '').strip()
+
+    # Validate business rules matching your textarea minimum constraints
+    if not item_code or len(reason) < 8:
+        return jsonify({'error': 'A valid item code and a minimum text reason of 8 characters are required.'}), 400
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        set_db_user_context(cursor)
+
+        # Fire your newly optimized multi-parameter stored procedure
+        query = "CALL sp_unarchive_item(%s, %s)"
+        cursor.execute(query, (item_code, reason))
+        conn.commit()
+
+        return jsonify({'message': 'Item successfully restored and tracking log registered.'}), 200
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': f'Database execution failure: {str(e)}'}), 500
     finally:
         if cursor:
             cursor.close()

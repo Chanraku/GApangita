@@ -17,6 +17,10 @@ function buildItemDetails(item, options = {}) {
         options.isArchivePage = true;
     }
 
+    if (options.hideArchiveActions) {
+        options.isArchivePage = false;
+    }
+
     console.log("DATABASE ROW OBJECT IS:", item);
 
     const container = document.createElement('div');
@@ -281,15 +285,23 @@ function openClaimModal(item) {
     claimConfirmBtn.className = 'btn btn-primary';
     claimConfirmBtn.disabled = true;
 
-    // Integrated evaluation function checking all constraints simultaneously
-    function checkFormValidity() {
-        const hasFname = firstNameField.input.value.trim().length > 0;
-        const hasLname = lastNameField.input.value.trim().length > 0;
-        const hasValidPhone = contactField.input.value.trim().length === 11;
-        const hasPhoto = imagePreview.src && imagePreview.style.display !== 'none';
+    let isSubmitting = false;
 
-        // Unlock only if all required tracking constraints validate true
-        claimConfirmBtn.disabled = !(hasFname && hasLname && hasValidPhone && hasPhoto);
+function checkFormValidity() {
+        if (isSubmitting) return;
+
+        const fnameVal = firstNameField.input.value.trim();
+        const lnameVal = lastNameField.input.value.trim();
+        const contactVal = contactField.input.value.trim();
+
+        const textFieldsValid = fnameVal.length > 0 && lnameVal.length > 0;
+        const phoneFieldValid = contactVal.length === 11;
+        
+        const hasPhoto = imagePreview.src && 
+                         imagePreview.style.display !== 'none' && 
+                         !imagePreview.src.endsWith('placeholder.png');
+
+        claimConfirmBtn.disabled = !(textFieldsValid && phoneFieldValid && hasPhoto);
     }
 
     // Camera Events
@@ -383,21 +395,27 @@ function openClaimModal(item) {
 
                 const result = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(result.message || 'Database transaction error.');
-                }
+                if (!response.ok) { throw new Error(result.message || 'Database transaction error.');}
 
-                // Clean up hardware and UI using the now fully functional onClose system
                 stopClaimCamera(cameraFeed);
                 Modal.hide();
-                showErrorModal(
-                    'Claim Submitted Successfully',
-                    'Your claim has been submitted and recorded. The item status will be updated accordingly.'
-                );
-                window.location.reload(); // force clean reload to update the item status in the list
-                
-                // Refresh list if table view function exists
-                if (typeof refreshItemList === 'function') refreshItemList();
+
+                firstNameField.input.value = '';
+                middleNameField.input.value = '';
+                lastNameField.input.value = '';
+                contactField.input.value = '';
+
+                if (window.AppState) { window.AppState.isFormDirty = false; }
+
+                Modal.show({
+                    title: 'Claim Submitted Successfully',
+                    message: 'Your claim has been submitted and recorded. The item status will be updated accordingly.',
+                    onConfirm: () => {
+                        Modal.hide(); 
+                        if (typeof refreshItemList === 'function') { refreshItemList(); }
+                            else if (window.AppState && typeof window.AppState.runSearch === 'function') { window.AppState.runSearch(); }
+                    }
+                });
 
             } catch (error) {
                 console.error('Submission tracking failure:', error);
@@ -535,7 +553,7 @@ function openRestoreItemModal(item) {
     wrapper.className = 'restore-modal';
     const title = document.createElement('h3');
     title.textContent = 'Restore Archived Item';
-    const itemDetailsNode = buildItemDetails(item);
+    const itemDetailsNode = buildItemDetails(item, { hideArchiveActions: true });
     const description = document.createElement('p');
 
     // Reason Label
@@ -547,6 +565,7 @@ function openRestoreItemModal(item) {
     reasonInput.className = 'restore-reason-input';
     reasonInput.placeholder = 'Enter at least 8 characters...';
     reasonInput.rows = 4;
+    reasonInput.style.setProperty('resize', 'none', 'important');
 
     // Validation Text
     const validationText = document.createElement('small');
@@ -571,14 +590,62 @@ function openRestoreItemModal(item) {
     restoreBtn.textContent = 'Restore Item';
     restoreBtn.className = 'btn btn-primary';
     restoreBtn.disabled = true;
-    restoreBtn.addEventListener('click', async () => {
+
+restoreBtn.addEventListener('click', async () => {
+        const textReason = reasonInput.value.trim();
+
+        if (textReason.length < 8) return;
+
+        restoreBtn.disabled = true;
+        restoreBtn.textContent = 'Processing Restore...';
+
         try {
-            console.log('Restoring item:', item.item_code);
+            const response = await fetch(`${API_BASE_URL}/items/unarchive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                },
+                body: JSON.stringify({
+                    item_code: item.item_code,
+                    reason: textReason
+                }),
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                showErrorModal(
+                    'Process Failed', 
+                    `Could not unarchive item: ${result.error || 'Failed to update item record status.'}`
+                );
+                
+                restoreBtn.disabled = false;
+                restoreBtn.textContent = 'Restore Item';
+                
+                return;
+            }
+
             Modal.hide();
-            alert('Placeholder: Item restored.');
+            showErrorModal(
+                'Success!',
+                'The item has been restored to the active list successfully!'
+            );
+
+            if (typeof refreshItemList === 'function') {
+                refreshItemList();
+            } else if (window.AppState && typeof window.AppState.runSearch === 'function') {
+                window.AppState.runSearch();
+            }
+
         } catch (error) {
-            console.error(error);
-            alert('Failed to restore item.');
+            console.error('Restore endpoint logic crash:', error);
+            showErrorModal('Process Failed', `Could not unarchive item: ${error.message}`);
+            
+            // Unlock button state layout back on failure
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = 'Restore Item';
         }
     });
 
