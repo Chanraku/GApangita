@@ -39,10 +39,10 @@ function buildItemDetails(item, options = {}) {
         const imgBase = API_BASE_URL.replace(/\/api$/, '');
         img.src = `${imgBase}/uploads/${cleanPath}`;
     } else {
-        img.src = 'assets/placeholder.png';
+        img.src = 'placeholder/placeholder.png';
     }
 
-    img.onerror = () => { img.onerror = null; img.src = 'assets/placeholder.png'; };
+    img.onerror = () => { img.onerror = null; img.src = 'placeholder/placeholder.png'; };
     img.alt = item.name || 'Item image';
     img.className = 'item-modal__image';
     imgWrapper.appendChild(img);
