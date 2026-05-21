@@ -164,6 +164,20 @@ function openClaimModal(item) {
     // Add custom class identifier specifically for the standalone contact row
     contactField.group.classList.add('claim-contact-group');
 
+    // Live validation for contact number field to allow only digits and limit to 11 characters
+    contactField.input.addEventListener('input', (e) => {
+        // Strip out any character that isn't a digit (0-9)
+        let value = e.target.value.replace(/\D/g, '');
+        // Truncate to exactly 11 characters max
+        if (value.length > 11) {  value = value.substring(0, 11);}
+        e.target.value = value;
+        checkFormValidity(); // Trigger live button check on input change
+    });
+
+    // Function to check overall form validity and enable/disable the confirm button
+    firstNameField.input.addEventListener('input', checkFormValidity);
+    lastNameField.input.addEventListener('input', checkFormValidity);
+
     // Append items down into structural containers
     nameRow.appendChild(firstNameField.group);
     nameRow.appendChild(middleNameField.group);
@@ -241,6 +255,17 @@ function openClaimModal(item) {
     claimConfirmBtn.className = 'btn btn-primary';
     claimConfirmBtn.disabled = true;
 
+    // Form Validation Function
+    function checkFormValidity() {
+        const hasFirstName = firstNameField.input.value.trim().length > 0;
+        const hasLastName = lastNameField.input.value.trim().length > 0;
+        const hasValidContact = contactField.input.value.trim().length === 11;
+        // Check if an image is actually captured and visible in the preview slot
+        const hasImage = imagePreview.src && imagePreview.style.display !== 'none';
+        // Button is ONLY enabled if ALL 4 conditions are perfectly met
+        claimConfirmBtn.disabled = !(hasFirstName && hasLastName && hasValidContact && hasImage);
+    }
+
     // Camera Events
     openCameraBtn.addEventListener('click', async () => {
         await openClaimCamera(cameraFeed);
@@ -254,7 +279,7 @@ function openClaimModal(item) {
             imagePreview,
             previewPlaceholder
         );
-        claimConfirmBtn.disabled = false;
+        checkFormValidity();
     });
 
     closeCameraBtn.addEventListener('click', () => {
@@ -267,7 +292,7 @@ function openClaimModal(item) {
             imagePreview,
             previewPlaceholder
         );
-        claimConfirmBtn.disabled = true;
+        checkFormValidity();
     });
 
     claimConfirmBtn.addEventListener('click', () => {
