@@ -14,19 +14,30 @@ async function checkAuth() {
             localStorage.removeItem('csrf_token');
         }
 
-        const currentPage = window.location.pathname.split('/').pop();
+        // Cleanly isolate just the filename, stripping query strings or hashes
+        const currentPage = window.location.pathname.split('/').pop().split('?')[0].split('#')[0];
         
         updateNavbar(isAuth, data.user);
         
-        if (!isAuth && (currentPage === 'report.html')) {
+        // Blacklist unauthenticated users from protected pages
+        const protectedPages = ['report.html', 'archive.html'];
+        if (!isAuth && protectedPages.includes(currentPage)) {
             window.location.href = 'login.html';
+            return; // Halt further execution immediately during redirect routing
         }
         
+        // Prevent authenticated users from visiting the login page
         if (isAuth && (currentPage === 'login.html')) {
             window.location.href = 'report.html';
+            return;
         }
+
     } catch (error) {
-        console.error('Auth check failed:', error);
+            showErrorModal(
+            'Security Sync Failure',
+            'Failed to establish a secure validation handshake with the gateway server. You will be redirected to the main hub page.',
+            () => { window.location.href = 'index.html'; }
+        );
     }
 }
 
