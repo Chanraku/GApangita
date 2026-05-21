@@ -55,10 +55,59 @@ function updateNavbar(isAuth, user) {
     }
 }
 
-async function logout(e) {
+function logout(e) {
     e.preventDefault();
-    try {
 
+    // HARDCODED CSS TO OVERRIDE THE DEFAULT MODAL STYLES FOR THIS PARTICULAR USE CASE
+    const wrapper = document.createElement('div');
+    wrapper.className = 'logout-confirm-modal';
+    wrapper.style.textAlign = 'center';
+    wrapper.style.padding = '10px';
+
+    const message = document.createElement('p');
+    message.textContent = 'Are you sure you want to sign out of your Gapangita account session?';
+    message.style.marginBottom = '20px';
+
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'modal-button-row';
+    buttonRow.style.display = 'flex';
+    buttonRow.style.justifyContent = 'center';
+    buttonRow.style.gap = '15px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'No, Stay';
+    cancelBtn.className = 'btn btn-secondary';
+    cancelBtn.style.minWidth = '100px';
+    cancelBtn.addEventListener('click', () => {
+        Modal.hide();
+    });
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.textContent = 'Yes, Logout';
+    confirmBtn.className = 'btn btn-primary';
+    confirmBtn.style.minWidth = '100px';
+    confirmBtn.addEventListener('click', async () => {
+        Modal.hide(); 
+        await executeLogoutSequence();
+    });
+
+    // Assemble components cleanly
+    buttonRow.append(cancelBtn, confirmBtn);
+    wrapper.append(message, buttonRow);
+
+    // Call the modal engine using your node-passing configuration strategy
+    Modal.show({
+        title: 'Confirm Logout',
+        node: wrapper,
+        hideFooter: true
+    });
+}
+
+// Handles the actual structural backend session termination network traffic
+async function executeLogoutSequence() {
+    try {
         const csrfToken = localStorage.getItem('csrf_token');
 
         const response = await fetch(`${API_BASE_URL}/logout`, { 
@@ -70,16 +119,48 @@ async function logout(e) {
         });
         
         if (response.ok) {
-            // REMOVE TOKEN AFTER LOGOUT
             localStorage.removeItem('csrf_token');
             window.location.href = 'index.html';
-
         } else {
-            console.error('Logout failed.');
+            Modal.show({
+                title: 'Logout Failed',
+                message: 'The secure ledger rejected the sign-out request. Please clear your cache or try again shortly.'
+            });
         }
 
     } catch (error) {
-        console.error('Logout failed:', error);
+        Modal.show({
+            title: 'Connection Error',
+            message: 'Failed to establish a connection with the authentication server. Please check your network connection.'
+        });
+    }
+}
+
+async function executeLogoutSequence() {
+    try {
+        const csrfToken = localStorage.getItem('csrf_token');
+
+        const response = await fetch(`${API_BASE_URL}/logout`, { 
+            method: 'POST', 
+            credentials: 'include',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            }
+        });
+        if (response.ok) {
+            localStorage.removeItem('csrf_token');
+            window.location.href = 'index.html';
+        } else {
+            Modal.show({
+                title: 'Logout Failed',
+                message: 'The secure ledger rejected the sign-out request. Please clear your cache or try again shortly.'
+            });
+        }
+    } catch (error) {
+        Modal.show({
+            title: 'Connection Error',
+            message: 'Failed to establish a connection with the authentication server. Please check your network connection.'
+        });
     }
 }
 
@@ -124,7 +205,7 @@ if (loginForm) {
                 // SAVE CSRF TOKEN
                 localStorage.setItem('csrf_token', data.csrf_token);
 
-                window.location.href = 'report.html';
+                window.location.href = 'index.html';
 
             } else {
                 const err = await response.json();

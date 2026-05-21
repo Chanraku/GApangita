@@ -13,9 +13,12 @@ function formatDetails(item) {
 }
 
 function buildItemDetails(item, options = {}) {
-
     if (window.location.pathname.includes('archive.html')) {
         options.isArchivePage = true;
+    }
+
+    if (options.hideArchiveActions) {
+        options.isArchivePage = false;
     }
 
     console.log("DATABASE ROW OBJECT IS:", item);
@@ -36,10 +39,10 @@ function buildItemDetails(item, options = {}) {
         const imgBase = API_BASE_URL.replace(/\/api$/, '');
         img.src = `${imgBase}/uploads/${cleanPath}`;
     } else {
-        img.src = 'assets/placeholder.png';
+        img.src = 'placeholder/placeholder.png';
     }
 
-    img.onerror = () => { img.onerror = null; img.src = 'assets/placeholder.png'; };
+    img.onerror = () => { img.onerror = null; img.src = 'placeholder/placeholder.png'; };
     img.alt = item.name || 'Item image';
     img.className = 'item-modal__image';
     imgWrapper.appendChild(img);
@@ -50,13 +53,13 @@ function buildItemDetails(item, options = {}) {
 
     const detailsText = document.createElement('div');
     detailsText.innerHTML = `
-        <p><strong>Name:</strong> ${escapeHtml(item.name)}</p>
-        <p><strong>Type:</strong> ${escapeHtml(item.item_type)}</p>
-        <p><strong>Category:</strong> ${escapeHtml(item.categoryName || 'N/A')}</p>
-        <p><strong>Branch:</strong> ${escapeHtml(item.branchName || 'N/A')}</p>
-        <p><strong>Location:</strong> ${escapeHtml(item.locationName || 'N/A')}</p>
-        <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p>
-        <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p>
+        <p><strong>Name:</strong><br> ${escapeHtml(item.name)}</p><hr>
+        <p><strong>Type:</strong><br> ${escapeHtml(item.item_type)}</p><hr>
+        <p><strong>Category:</strong><br> ${escapeHtml(item.categoryName || 'N/A')}</p><hr>
+        <p><strong>Branch:</strong><br> ${escapeHtml(item.branchName || 'N/A')}</p><hr>
+        <p><strong>Location:</strong><br> ${escapeHtml(item.locationName || 'N/A')}</p><hr>
+        <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p><hr>
+        <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p><hr>
         <p><strong>Date Reported:</strong><br>${formatWithoutTimezone(item.date_reported)}</p>
     `;
     content.appendChild(detailsText);
@@ -88,7 +91,7 @@ function buildItemDetails(item, options = {}) {
             actions.appendChild(actionBtn);
         }
 
-        // FIX: Place Claimant button right underneath/beside the standard option button
+        // Place Claimant button right underneath/beside the standard option button
         if (options.isArchivePage) {
             const claimantDetailsBtn = document.createElement('button');
             claimantDetailsBtn.type = 'button';
@@ -201,7 +204,7 @@ function openClaimModal(item) {
         checkFormValidity();
     });
 
-    // NEW: Bind verification tracking checks across required input textboxes
+    // Bind verification tracking checks across required input textboxes
     firstNameField.input.addEventListener('input', checkFormValidity);
     lastNameField.input.addEventListener('input', checkFormValidity);
 
@@ -282,15 +285,23 @@ function openClaimModal(item) {
     claimConfirmBtn.className = 'btn btn-primary';
     claimConfirmBtn.disabled = true;
 
-    // Integrated evaluation function checking all constraints simultaneously
-    function checkFormValidity() {
-        const hasFname = firstNameField.input.value.trim().length > 0;
-        const hasLname = lastNameField.input.value.trim().length > 0;
-        const hasValidPhone = contactField.input.value.trim().length === 11;
-        const hasPhoto = imagePreview.src && imagePreview.style.display !== 'none';
+    let isSubmitting = false;
 
-        // Unlock only if all required tracking constraints validate true
-        claimConfirmBtn.disabled = !(hasFname && hasLname && hasValidPhone && hasPhoto);
+function checkFormValidity() {
+        if (isSubmitting) return;
+
+        const fnameVal = firstNameField.input.value.trim();
+        const lnameVal = lastNameField.input.value.trim();
+        const contactVal = contactField.input.value.trim();
+
+        const textFieldsValid = fnameVal.length > 0 && lnameVal.length > 0;
+        const phoneFieldValid = contactVal.length === 11;
+        
+        const hasPhoto = imagePreview.src && 
+                         imagePreview.style.display !== 'none' && 
+                         !imagePreview.src.endsWith('placeholder.png');
+
+        claimConfirmBtn.disabled = !(textFieldsValid && phoneFieldValid && hasPhoto);
     }
 
     // Camera Events
@@ -384,21 +395,27 @@ function openClaimModal(item) {
 
                 const result = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(result.message || 'Database transaction error.');
-                }
+                if (!response.ok) { throw new Error(result.message || 'Database transaction error.');}
 
-                // Clean up hardware and UI using the now fully functional onClose system
                 stopClaimCamera(cameraFeed);
                 Modal.hide();
-                showErrorModal(
-                    'Claim Submitted Successfully',
-                    'Your claim has been submitted and recorded. The item status will be updated accordingly.'
-                );
-                window.location.reload(); // force clean reload to update the item status in the list
-                
-                // Refresh list if table view function exists
-                if (typeof refreshItemList === 'function') refreshItemList();
+
+                firstNameField.input.value = '';
+                middleNameField.input.value = '';
+                lastNameField.input.value = '';
+                contactField.input.value = '';
+
+                if (window.AppState) { window.AppState.isFormDirty = false; }
+
+                Modal.show({
+                    title: 'Claim Submitted Successfully',
+                    message: 'Your claim has been submitted and recorded. The item status will be updated accordingly.',
+                    onConfirm: () => {
+                        Modal.hide(); 
+                        if (typeof refreshItemList === 'function') { refreshItemList(); }
+                            else if (window.AppState && typeof window.AppState.runSearch === 'function') { window.AppState.runSearch(); }
+                    }
+                });
 
             } catch (error) {
                 console.error('Submission tracking failure:', error);
@@ -471,7 +488,6 @@ function openClaimantDetailsModal(item, options = {}) {
     wrapper.append(backBtn, title, loadingText);
     Modal.show({ title: '', node: wrapper });
 
-    // FIX: Added credentials configuration to route authentication parameters safely
     fetch(`${API_BASE_URL}/claims/${item.item_code}`, {
         method: 'GET',
         credentials: 'include',
@@ -493,7 +509,6 @@ function openClaimantDetailsModal(item, options = {}) {
             const middleInitial = claimData.claimer_middle_name ? ` ${escapeHtml(claimData.claimer_middle_name)}` : '';
             const fullName = `${escapeHtml(claimData.claimer_first_name)}${middleInitial} ${escapeHtml(claimData.claimer_last_name)}`;
 
-            // NEW CHANGE: Robust path lookup to ensure zero property mismatch crashes
             let rawImagePath = claimData.claimProof_file_path || claimData.claimProof || claimData.file_path;
             if (!rawImagePath) {
                 const matchingKey = Object.keys(claimData).find(k => k.toLowerCase().includes('proof') || k.toLowerCase().includes('path'));
@@ -502,7 +517,6 @@ function openClaimantDetailsModal(item, options = {}) {
 
             let proofImgHtml = `<p class="claimant-details__no-image"><em>No verification snapshot recorded on file logs.</em></p>`;
             
-            // FIX: The condition now checks rawImagePath instead of the static claimData property path
             if (rawImagePath && rawImagePath.trim() !== '') {
                 const cleanPath = rawImagePath.replace(/^\/+/, '');
                 const imgBase = API_BASE_URL.replace(/\/api$/, '');
@@ -524,7 +538,6 @@ function openClaimantDetailsModal(item, options = {}) {
             wrapper.appendChild(infoCard);
         })
     .catch(err => {
-        // FIX: Leverages your uniform error layout structure instead of plain text dumps
         wrapper.innerHTML = ''; 
         wrapper.appendChild(backBtn);
         showErrorModal(
@@ -534,14 +547,13 @@ function openClaimantDetailsModal(item, options = {}) {
     });
 }
 
-
 function openRestoreItemModal(item) {
 
     const wrapper = document.createElement('div');
     wrapper.className = 'restore-modal';
     const title = document.createElement('h3');
     title.textContent = 'Restore Archived Item';
-    const itemDetailsNode = buildItemDetails(item);
+    const itemDetailsNode = buildItemDetails(item, { hideArchiveActions: true });
     const description = document.createElement('p');
 
     // Reason Label
@@ -553,6 +565,7 @@ function openRestoreItemModal(item) {
     reasonInput.className = 'restore-reason-input';
     reasonInput.placeholder = 'Enter at least 8 characters...';
     reasonInput.rows = 4;
+    reasonInput.style.setProperty('resize', 'none', 'important');
 
     // Validation Text
     const validationText = document.createElement('small');
@@ -569,7 +582,6 @@ function openRestoreItemModal(item) {
     cancelBtn.textContent = 'Cancel';
     cancelBtn.className = 'btn';
     cancelBtn.addEventListener('click', () => {
-
         Modal.hide();
     });
 
@@ -578,44 +590,78 @@ function openRestoreItemModal(item) {
     restoreBtn.textContent = 'Restore Item';
     restoreBtn.className = 'btn btn-primary';
     restoreBtn.disabled = true;
-    restoreBtn.addEventListener('click', async () => {
+
+restoreBtn.addEventListener('click', async () => {
+        const textReason = reasonInput.value.trim();
+
+        if (textReason.length < 8) return;
+
+        restoreBtn.disabled = true;
+        restoreBtn.textContent = 'Processing Restore...';
 
         try {
+            const response = await fetch(`${API_BASE_URL}/items/unarchive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+                },
+                body: JSON.stringify({
+                    item_code: item.item_code,
+                    reason: textReason
+                }),
+                credentials: 'include'
+            });
 
-            // PLACEHOLDER LOGIC
-            console.log('Restoring item:', item.item_code);
+            const result = await response.json();
+
+            if (!response.ok) {
+                showErrorModal(
+                    'Process Failed', 
+                    `Could not unarchive item: ${result.error || 'Failed to update item record status.'}`
+                );
+                
+                restoreBtn.disabled = false;
+                restoreBtn.textContent = 'Restore Item';
+                
+                return;
+            }
 
             Modal.hide();
+            showErrorModal(
+                'Success!',
+                'The item has been restored to the active list successfully!'
+            );
 
-            alert('Placeholder: Item restored.');
+            if (typeof refreshItemList === 'function') {
+                refreshItemList();
+            } else if (window.AppState && typeof window.AppState.runSearch === 'function') {
+                window.AppState.runSearch();
+            }
 
         } catch (error) {
-
-            console.error(error);
-
-            alert('Failed to restore item.');
+            console.error('Restore endpoint logic crash:', error);
+            showErrorModal('Process Failed', `Could not unarchive item: ${error.message}`);
+            
+            // Unlock button state layout back on failure
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = 'Restore Item';
         }
     });
 
     reasonInput.addEventListener('input', () => {
-
         const value = reasonInput.value.trim();
-
         restoreBtn.disabled = value.length < 8;
     });
 
-
-        // Go Back Button
+    // Go Back Button
     const backBtn = document.createElement('button');
     backBtn.type = 'button';
     backBtn.textContent = '← Go Back';
     backBtn.className = 'btn';
     backBtn.addEventListener('click', () => {
-
         Modal.hide();
-
         setTimeout(() => {
-
             showItemDetails(item, {
                 isArchivePage: true,
                 actionButton: {
@@ -624,7 +670,6 @@ function openRestoreItemModal(item) {
                     onClick: openRestoreItemModal
                 }
             });
-
         }, 50);
     });
 

@@ -28,6 +28,7 @@
                 <h2>Report an Item</h2>
                 <p>Fill out the details below to report an item you have either lost or found.</p>
                 <form id="reportForm">
+                    
                     <div class="form-group">
                         <label class="form-label" for="itemName">Item Name</label>
                         <input type="text" id="itemName" class="form-input" required>
@@ -84,18 +85,7 @@
 
                     </div>
 
-                    <h3> Capture Reporter Image </h3>
-
-                    <div class="camera-section">
-
-                        <button type="button" id="openUserCameraBtn" class="btn"> Open User Camera </button>
-                        <button type="button" id="captureUserBtn" class="btn"> Capture User Image </button>
-                        <video id="userCameraFeed" autoplay playsinline></video>
-                        <canvas id="userSnapshotCanvas"></canvas>
-
-                    </div>
-
-                    <button type="submit" class="btn">Submit Report</button>
+                    <button type="submit" id="submitReportBtn" class="btn btn-primary" disabled>Submit Report</button>
                 </form>
             </div>
             
@@ -118,13 +108,6 @@
                 <br>
 
                 <button type="button" id="cancelItemImageBtn" class="btn"> Remove Item Image </button>
-
-                <h2>Reporter Image Preview</h2>
-
-                <img id="userImagePreview" alt="Preview" style = "display:none;">
-                <p id="userPreviewPlaceholder"> No image selected yet. </p>
-
-                <button type="button" id="cancelUserImageBtn" class="btn"> Remove User Image </button>
 
                 </div>
 
@@ -161,7 +144,6 @@
 <script src="branchLocations.js"></script>
 <script src="forms.js"></script>
 <script src="itemCamera.js"></script>
-<script src="userCamera.js"></script>
 <script src="items.js"></script>
 <script src="search.js"></script>
 <script src="unsavedChanges.js"></script>

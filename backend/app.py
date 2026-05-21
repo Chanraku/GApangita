@@ -36,15 +36,13 @@ db_config = {
     'database': 'gapangita_db_test'
 }
 
-# FOR ITEM AND REPORTER CAMERA
+# FOR ITEM AND CLAIMANT CAMERA
 UPLOAD_FOLDER = 'uploads'
 
 ITEM_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'items')
-REPORTER_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'reporters')
 CLAIMANT_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'claimant')
 
 os.makedirs(ITEM_UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(REPORTER_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLAIMANT_UPLOAD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -52,8 +50,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # ================================
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 MAX_DESCRIPTION_LENGTH = 1000
 ALLOWED_ITEM_TYPES = ['lost', 'found']
@@ -180,106 +176,6 @@ def get_locations_by_branch(branch_code):
         cursor.close()
         conn.close()
 
-@app.route('/api/items', methods=['POST'])
-def report_item():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
-    
-    if not validate_csrf():
-        return jsonify({'error': 'Invalid CSRF token'}), 403
-
-    data = request.form
-
-    name = data.get('name', '').strip()
-    description = data.get('description', '').strip()
-    item_type = data.get('item_type', '').lower().strip()
-    item_image = request.files.get('item_image')
-    reporter_image = request.files.get('reporter_image')
-
-    # ADDED: Extract date_found parameter from the frontend FormData payload
-    date_found = data.get('date_found')
-    if date_found and date_found.strip() == "":
-        date_found = None
-
-    # Validate required fields (Enforcing that Date Found must be filled out)
-    if not name:
-        return jsonify({
-            'error': 'Item name is required.'
-        }), 400
-        
-    if not date_found:
-        return jsonify({
-            'error': 'Date and Time Found is required.'
-        }), 400
-
-    # Validate item type
-    if item_type not in ALLOWED_ITEM_TYPES:
-        return jsonify({
-            'error': 'Invalid item type.'
-        }), 400
-
-    # Validate description length
-    if len(description) > MAX_DESCRIPTION_LENGTH:
-        return jsonify({
-            'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
-        }), 400
-    
-    item_file_path = None
-    reporter_file_path = None
-
-    # Save item image
-    if item_image and allowed_file(item_image.filename):
-        ext = item_image.filename.rsplit('.', 1)[1].lower()
-        filename = f"item_{uuid.uuid4().hex}.{ext}"
-        
-        # RELATIVE path (store in DB)
-        item_file_path = f"items/{filename}"
-        
-        # ACTUAL save path
-        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
-        item_image.save(save_path)
-
-    # Save reporter image
-    if reporter_image and allowed_file(reporter_image.filename):
-        ext = reporter_image.filename.rsplit('.', 1)[1].lower()
-        filename = f"reporter_{uuid.uuid4().hex}.{ext}"
-        
-        reporter_file_path = f"reporters/{filename}"
-        save_path = os.path.join(UPLOAD_FOLDER, reporter_file_path)
-        reporter_image.save(save_path)
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        set_db_user_context(cursor)
-        
-        # Modifying parameter block execution query to include your parsed date_found variable
-        query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        values = (
-            name,
-            description if description else None,
-            item_type,
-            data.get('category_code') if data.get('category_code') else None,
-            data.get('branch_code') if data.get('branch_code') else None,
-            data.get('location_code') if data.get('location_code') else None,
-            item_file_path,
-            reporter_file_path,
-            date_found  # Sent down safely to your stored procedure arguments mapping
-        )
-        
-        cursor.execute(query, values)
-        conn.commit()
-        return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals() and conn.is_connected():
-            conn.close()
-
 @app.route('/api/search', methods=['GET'])
 def search_openItems():
     name_q = request.args.get('name_q', '').strip()
@@ -307,7 +203,6 @@ def search_openItems():
             view_name = 'vw_closedFoundItems'
         else:
             view_name = 'vw_closedAllItems'
-
     else:
         if filter_itemType == 'lost':
             view_name = 'vw_openLostItems'
@@ -326,7 +221,7 @@ def search_openItems():
         params = []
         count_params = []
 
-        # filters
+        # Category/Branch Filters
         if category_code:
             base_query += " AND category_code = %s"
             count_query += " AND category_code = %s"
@@ -345,19 +240,15 @@ def search_openItems():
             params.append(location_code)
             count_params.append(location_code)
 
-        # total count (NO LIMIT!)
+        # Total count query remains vanilla for accurate pagination numbers
         cursor.execute(count_query, count_params)
         total = cursor.fetchone()['total']
 
-        # pagination
-        base_query += " LIMIT %s OFFSET %s"
-        params.extend([limit, offset])
-
+        # Execute base query without raw database slice parameters
         cursor.execute(base_query, params)
         items = cursor.fetchall()
-
         
-        # Apply Levenshtein distance and convert to percentage similarity
+        # 1. Compute Levenshtein similarity across ALL fetched rows matching your filters
         for item in items:
             sim_name = 0
             if name_q:
@@ -380,11 +271,14 @@ def search_openItems():
             if desc_q: relevances.append(sim_desc)
             item['relevance'] = round(max(relevances)) if relevances else 0
             
-        # Sort by relevance (higher percentage is better)
+        # 2. Sort globally so highest percentage matching metrics sit at the very top array indices
         items.sort(key=lambda x: x['relevance'], reverse=True)
         
+        # 3. Apply pagination window slicing right here in Python memory safely
+        paginated_items = items[offset : offset + limit]
+        
         return jsonify({
-            "items": items,
+            "items": paginated_items,
             "total": total,
             "page": page,
             "limit": limit
@@ -416,7 +310,7 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        #ONLY search by username
+        # ONLY search by username
         query = """
             SELECT * FROM vw_userLogin
             WHERE username = %s
@@ -501,13 +395,99 @@ def auth_status():
         }), 200
     return jsonify({'is_authenticated': False}), 200
 
+@app.route('/api/items', methods=['POST'])
+def report_item():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
+    
+    if not validate_csrf():
+        return jsonify({'error': 'Invalid CSRF token'}), 403
+
+    data = request.form
+
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    item_type = data.get('item_type', '').lower().strip()
+    item_image = request.files.get('item_image')
+
+    # Extract date_found parameter from the frontend FormData payload
+    date_found = data.get('date_found')
+    if date_found and date_found.strip() == "":
+        date_found = None
+
+    # Validate required fields
+    if not name:
+        return jsonify({
+            'error': 'Item name is required.'
+        }), 400
+        
+    if not date_found:
+        return jsonify({
+            'error': 'Date and Time Found is required.'
+        }), 400
+
+    # Validate item type
+    if item_type not in ALLOWED_ITEM_TYPES:
+        return jsonify({
+            'error': 'Invalid item type.'
+        }), 400
+
+    # Validate description length
+    if len(description) > MAX_DESCRIPTION_LENGTH:
+        return jsonify({
+            'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
+        }), 400
+    
+    item_file_path = None
+
+    # Save item image
+    if item_image and allowed_file(item_image.filename):
+        ext = item_image.filename.rsplit('.', 1)[1].lower()
+        filename = f"item_{uuid.uuid4().hex}.{ext}"
+        
+        # RELATIVE path (store in DB)
+        item_file_path = f"items/{filename}"
+        
+        # ACTUAL save path
+        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
+        item_image.save(save_path)
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        set_db_user_context(cursor)
+        
+        # Kept procedure arguments perfectly balanced
+        query = """
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        values = (
+            name,
+            description if description else None,
+            item_type,
+            data.get('category_code') if data.get('category_code') else None,
+            data.get('branch_code') if data.get('branch_code') else None,
+            data.get('location_code') if data.get('location_code') else None,
+            item_file_path,
+            date_found  
+        )
+        
+        cursor.execute(query, values)
+        conn.commit()
+        return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
+
 @app.route('/api/claims', methods=['POST'])
 def process_item_claim():
-    # Enforce Authentication Protection
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized. Please log in to process claims.'}), 401
     
-    # Enforce CSRF Protection
     if not validate_csrf():
          return jsonify({'error': 'Invalid CSRF token'}), 403
     
@@ -519,33 +499,27 @@ def process_item_claim():
     contact_number = data.get('contact_number', '').strip()
     claim_image = request.files.get('claimProof')
 
-    # Server-Side Validation Check
     if not item_code or not first_name or not last_name or not contact_number:
         return jsonify({'error': 'Missing required claim details.'}), 400
 
     if not claim_image or not allowed_file(claim_image.filename):
         return jsonify({'error': 'A valid image snapshot file is required.'}), 400
 
-    # Process image saving into your clean path formatting structure
     ext = claim_image.filename.rsplit('.', 1)[1].lower()
     unique_filename = f"claim_{uuid.uuid4().hex}.{ext}"
     
-    # Store just 'claimant/filename.jpg' inside your table row
     db_relative_path = f"claimant/{unique_filename}"
     actual_save_path = os.path.join(UPLOAD_FOLDER, db_relative_path)
     claim_image.save(actual_save_path)
 
-    # 4. Handle Database Transactions
     conn = None
     cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Enable your audit tracking log setup context if your database relies on it
         set_db_user_context(cursor)
 
-        # Action Step A: Write data down to your claimed_items log table
         query = """
             CALL sp_insert_into_claimed_items(%s, %s, %s, %s, %s, %s)
         """
@@ -558,15 +532,13 @@ def process_item_claim():
             db_relative_path
         )
         cursor.execute(query, values)
-        # Commit everything to database storage safely
         conn.commit()
         return jsonify({'message': 'Claim successfully updated via stored procedure.'}), 201
 
     except Exception as e:
-        # If anything fails, rollback database alterations instantly to protect data integrity
         if conn:
             conn.rollback()
-        return jsonify({'message': f'Database processing failure: {str(e)}'}), 500
+        return jsonify({'message': 'Internal Server Error'}), 500
 
     finally:
         if cursor:
@@ -574,15 +546,11 @@ def process_item_claim():
         if conn and conn.is_connected():
             conn.close()
 
-# This GET endpoint allows clients to retrieve claim details for a specific item code, 
-# with standard session-based authorization checks and CORS preflight handling.
 @app.route('/api/claims/<item_code>', methods=['GET', 'OPTIONS'])
 def get_item_claim_details(item_code):
-    # Handle the browser preflight request instantly
     if request.method == 'OPTIONS':
         return jsonify({'status': 'CORS preflight ok'}), 200
 
-    # Enforce standard session authorization checks
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized view request.'}), 401
 
@@ -592,7 +560,6 @@ def get_item_claim_details(item_code):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Simple directional lookup target filtering by item_code keys
         query = "SELECT * FROM claimed_items WHERE item_code = %s"
         cursor.execute(query, (item_code,))
         claim_record = cursor.fetchone()
@@ -604,6 +571,46 @@ def get_item_claim_details(item_code):
 
     except Exception as e:
         return jsonify({'error': f'Server pipeline tracking crash: {str(e)}'}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+@app.route('/api/items/unarchive', methods=['POST'])
+def unarchive_item():
+    # Enforce Authentication & CSRF Controls
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized view request.'}), 401
+    if not validate_csrf():
+        return jsonify({'error': 'Invalid CSRF token'}), 403
+
+    data = request.json
+    item_code = data.get('item_code', '').strip()
+    reason = data.get('reason', '').strip()
+
+    # Validate business rules matching your textarea minimum constraints
+    if not item_code or len(reason) < 8:
+        return jsonify({'error': 'A valid item code and a minimum text reason of 8 characters are required.'}), 400
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        set_db_user_context(cursor)
+
+        # Fire your newly optimized multi-parameter stored procedure
+        query = "CALL sp_unarchive_item(%s, %s)"
+        cursor.execute(query, (item_code, reason))
+        conn.commit()
+
+        return jsonify({'message': 'Item successfully restored and tracking log registered.'}), 200
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({'error': f'Database execution failure: {str(e)}'}), 500
     finally:
         if cursor:
             cursor.close()
