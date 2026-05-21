@@ -237,10 +237,10 @@ def report_item():
         conn = get_db_connection()
         cursor = conn.cursor()
         set_db_user_context(cursor)
-        
+        s
         # Kept the same query footprint to honor the MySQL procedure blueprint setup without crashing parameter count validations
         query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             name,
@@ -250,7 +250,6 @@ def report_item():
             data.get('branch_code') if data.get('branch_code') else None,
             data.get('location_code') if data.get('location_code') else None,
             item_file_path,
-            None,
             date_found
         )
         
