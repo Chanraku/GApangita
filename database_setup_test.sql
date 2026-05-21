@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS items (
 CREATE TABLE IF NOT EXISTS claimed_items ( -- new table
     claimed_item_id INT AUTO_INCREMENT PRIMARY KEY,
     claimed_item_code VARCHAR(15) UNIQUE,
-    item_code VARCHAR(15) NOT NULL, -- Foreign
+    item_code VARCHAR(15) NOT NULL UNIQUE, -- Foreign
     claimer_first_name VARCHAR(50) NOT NULL, -- NEW CLAIMER FIRST NAME
     claimer_middle_name VARCHAR(50) DEFAULT NULL, -- NEW CLAIMER MIDDLE NAME
     claimer_last_name VARCHAR(50) NOT NULL, -- NEW CLAIMER LAST NAME
@@ -85,19 +85,25 @@ CREATE TABLE IF NOT EXISTS unarchived_items ( -- NEW table
     unarchived_item_id INT AUTO_INCREMENT PRIMARY KEY,
     unarchived_item_code VARCHAR(15) UNIQUE,
     item_code VARCHAR(15) NOT NULL, -- Foreign
+    claimer_first_name VARCHAR(50) NOT NULL, -- NEW CLAIMER FIRST NAME
+    claimer_middle_name VARCHAR(50) DEFAULT NULL, -- NEW CLAIMER MIDDLE NAME
+    claimer_last_name VARCHAR(50) NOT NULL, -- NEW CLAIMER LAST NAME
+    contact_number VARCHAR(20) NOT NULL,
+    claimProof_file_path VARCHAR(255),
+    date_claimed DATETIME DEFAULT CURRENT_TIMESTAMP,
     date_unarchived DATETIME DEFAULT CURRENT_TIMESTAMP,
     reason TEXT,
     FOREIGN KEY (item_code) REFERENCES items(item_code)
 );
 
-CREATE TABLE IF NOT EXISTS unarchivedClaimed_items ( -- NEW table (Junction)
-    unarchivedClaimed_item_id INT AUTO_INCREMENT PRIMARY KEY,
-    unarchivedClaimed_item_code VARCHAR(15) UNIQUE,
-    claimed_item_code VARCHAR(15) NOT NULL, -- Foreign
-    unarchived_item_code VARCHAR(15) NOT NULL, -- Foreign
-    FOREIGN KEY (claimed_item_code) REFERENCES claimed_items(claimed_item_code),
-    FOREIGN KEY (unarchived_item_code) REFERENCES unarchived_items(unarchived_item_code)
-);
+-- CREATE TABLE IF NOT EXISTS unarchivedClaimed_items ( -- NEW table (Junction) SCRAPPED TABLE
+--    unarchivedClaimed_item_id INT AUTO_INCREMENT PRIMARY KEY,
+--    unarchivedClaimed_item_code VARCHAR(15) UNIQUE,
+--    claimed_item_code VARCHAR(15) NOT NULL, -- Foreign
+--    unarchived_item_code VARCHAR(15) NOT NULL, -- Foreign
+--    FOREIGN KEY (claimed_item_code) REFERENCES claimed_items(claimed_item_code),
+--    FOREIGN KEY (unarchived_item_code) REFERENCES unarchived_items(unarchived_item_code)
+-- );
 
 
 CREATE TABLE ID_Counters (
@@ -432,22 +438,46 @@ END$$
 DELIMITER ;
 
 -- 3
-DROP PROCEDURE IF EXISTS sp_insert_into_unarchived_items;
+DROP PROCEDURE IF EXISTS sp_unarchive_item;
 
 DELIMITER $$
 
-CREATE PROCEDURE sp_insert_into_unarchived_items(
-    IN p_item_code VARCHAR(15),
-    IN p_unarchived_item_code VARCHAR(15),
-    IN p_reason TEXT
+CREATE PROCEDURE sp_unarchive_item (
+    IN p_item_code VARCHAR(15)
 )
-BEGIN    
+BEGIN
+    START TRANSACTION;
+
+    UPDATE items
+    SET STATUS = 'open'
+    WHERE item_code = p_item_code;
+
     INSERT INTO unarchived_items (
-        item_code, reason
+        item_code,
+        claimer_first_name,
+        claimer_middle_name,
+        claimer_last_name,
+        contact_number,
+        claimProof_file_path,
+        date_claimed,
+        reason
     )
-    VALUES (
-        p_item_code, p_reason
-    );
+    SELECT
+        item_code,
+        claimer_first_name,
+        claimer_middle_name,
+        claimer_last_name,
+        contact_number,
+        claimProof_file_path,
+        date_claimed,
+        NULL
+    FROM claimed_items
+    WHERE item_code = p_item_code;
+
+    DELETE FROM claimed_items
+    WHERE item_code = p_item_code;
+
+    COMMIT;
 END$$
 
 -- Create Functions
@@ -622,23 +652,23 @@ END$$
 
 DELIMITER ;
 
--- 9
+-- 9 -- SCRAPPED
 -- ('unarchivedClaimed_items', 'CLM-UNA');
 
-DROP TRIGGER IF EXISTS trg_unarchivedClaimed_auto_id;
+-- DROP TRIGGER IF EXISTS trg_unarchivedClaimed_auto_id;
 
-DELIMITER $$
+-- DELIMITER $$
 
-CREATE TRIGGER trg_unarchivedClaimed_auto_id
-BEFORE INSERT ON unarchivedClaimed_items
-FOR EACH ROW
-BEGIN
-    IF NEW.unarchivedClaimed_item_code IS NULL THEN
-        SET NEW.unarchivedClaimed_item_code = fn_generate_id('unarchivedClaimed_items');
-    END IF;
-END$$
+-- CREATE TRIGGER trg_unarchivedClaimed_auto_id
+-- BEFORE INSERT ON unarchivedClaimed_items
+-- FOR EACH ROW
+-- BEGIN
+--     IF NEW.unarchivedClaimed_item_code IS NULL THEN
+--         SET NEW.unarchivedClaimed_item_code = fn_generate_id('unarchivedClaimed_items');
+--     END IF;
+-- END$$
 
-DELIMITER ;
+-- DELIMITER ;
 
 -- 10
 DROP TRIGGER IF EXISTS trg_set_close_date;
@@ -700,42 +730,6 @@ BEGIN
     UPDATE items
     SET STATUS = 'closed'
     WHERE item_code = NEW.item_code;
-END$$
-
-DELIMITER ;
-
--- 14
-DROP TRIGGER IF EXISTS trg_auto_open_unarchived_items; -- NEW TRIGGER
-
-DELIMITER $$
-
-CREATE TRIGGER trg_auto_open_unarchived_items
-AFTER INSERT ON unarchived_items
-FOR EACH ROW
-BEGIN
-    UPDATE items
-    SET STATUS = 'open'
-    WHERE item_code = NEW.item_code;
-END$$
-
-DELIMITER ;
-
--- 15
-DROP TRIGGER IF EXISTS trg_auto_remove_claimed_when_unarchived; -- NEW TRIGGER
-
-DELIMITER $$
-
-CREATE TRIGGER trg_auto_remove_claimed_when_unarchived
-AFTER UPDATE ON items
-FOR EACH ROW
-BEGIN
-    IF NEW.status = 'open'
-       AND OLD.status = 'closed' THEN
-
-        DELETE FROM items
-        WHERE item_code = NEW.item_code;
-
-    END IF;
 END$$
 
 DELIMITER ;
