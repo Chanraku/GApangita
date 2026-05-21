@@ -396,17 +396,36 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_insert_into_claimed_items(
     IN p_item_code VARCHAR(15),
+    IN p_claimer_first_name VARCHAR(50),
+    IN p_claimer_middle_name VARCHAR(50),
+    IN p_claimer_last_name VARCHAR(50),
     IN p_contact_number VARCHAR(20),
-    IN p_claimProof_file_path VARCHAR(255),
-    IN p_date_claimed DATETIME
+    IN p_claimProof_file_path VARCHAR(255)
 )
 BEGIN
-    INSERT INTO claimed_items (item_code, contact_number, claimProof_file_path, date_claimed)
-    VALUES (p_item_code, p_contact_number, p_claimProof_file_path, p_date_claimed);
+
+    DECLARE v_claimed_item_code VARCHAR(15);
+    SET v_claimed_item_code = fn_generate_id('claimed_items');
+    
+    INSERT INTO claimed_items (
+	claimed_item_code,
+        item_code, 
+        claimer_first_name, 
+        claimer_middle_name, 
+        claimer_last_name, 
+        contact_number, 
+        claimProof_file_path
+    )
+    VALUES (
+	v_claimed_item_code,
+        p_item_code, 
+        p_claimer_first_name, 
+        p_claimer_middle_name, 
+        p_claimer_last_name, 
+        p_contact_number, 
+        p_claimProof_file_path
+    );
 END$$
-
-DELIMITER ;
-
 
 -- Create Functions
 -- 1
@@ -1234,7 +1253,6 @@ JOIN locations l
 
 
 -- DCL Statements
-
 -- User
 CREATE USER IF NOT EXISTS 'viewer_user'@'localhost'
 IDENTIFIED BY 'Viewer123!';
