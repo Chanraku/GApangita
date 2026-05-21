@@ -307,21 +307,6 @@ function openClaimModal(item) {
             }
         }
     });
-    
-    // TEMPORARY FIX FOR CAMERA NOT STOPPING ON MODAL CLOSE: Listen for the modal's close button click to stop the camera
-    // Additional safety: Listen for clicks outside the modal to detect if user clicks the backdrop to close it, and stop camera if so
-    window.addEventListener('click', function handleModalClose(e) {
-        setTimeout(() => {
-            const isHidden = wrapper.offsetParent === null;
-            const isRemoved = !document.body.contains(wrapper);
-
-            if (isHidden || isRemoved) {
-                console.log("Detected modal closure via screen click! Stopping camera...");
-                stopClaimCamera(cameraFeed);
-                window.removeEventListener('click', handleModalClose);
-            }
-        }, 100);
-    });
 
 }
 

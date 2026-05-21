@@ -5,15 +5,20 @@ const Modal = (() => {
     const messageEl = document.getElementById('modalMessage');
     const footerEl = document.getElementById('modalFooter');
 
+    // Variable to hold active close callback loop
+    let activeCloseCallback = null;
+
     if (!modal || !titleEl || !messageEl || !footerEl) {
         console.warn('Modal elements not found');
         return {};
     }
 
-    function show({ title = '', message = '', node = null, type = 'alert', onConfirm = null, confirmText = 'Close' }) {
+    function show({ title = '', message = '', node = null, type = 'alert', onConfirm = null, confirmText = 'Close', onClose = null }) {
+
+        // save the reference down into our module scope variable
+        activeCloseCallback = onClose;
 
         titleEl.textContent = title;
-
         footerEl.innerHTML = '';
 
         if (node) {
@@ -56,6 +61,12 @@ const Modal = (() => {
 
     function hide() {
         modal.style.display = 'none';
+
+        // execute the saved close lifecycle tracking hook if it exists
+        if (activeCloseCallback) {
+            activeCloseCallback();
+            activeCloseCallback = null; // Reset to avoid double execution bugs
+        }
     }
 
     return { show, hide };
