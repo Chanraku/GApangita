@@ -240,7 +240,7 @@ function initSearchAndFilters() {
     }
 }
 
-function createItemCard(item) {
+    function createItemCard(item) {
         const template = document.getElementById('item-card-template');
         const card = template.content.cloneNode(true);
 
@@ -255,19 +255,22 @@ function createItemCard(item) {
         // store full item for click handling
         root.dataset.item = encodeURIComponent(JSON.stringify(item));
 
-        // Image with fallback
-        if (item.item_file_path) {
-                const cleanPath = item.item_file_path.replace(/^\/+/, '');
-                const imgBase = API_BASE_URL.replace(/\/api$/, '');
-                cardImage.src = `${imgBase}/uploads/${cleanPath}`;
-            } else {
-                cardImage.src = 'assets/placeholder.png';
-            }
+        // Handle cross-consistent property check & trim whitespace
+        const itemImagePath = item.item_file_path || item.file_path || item.item_image;
 
-            cardImage.onerror = () => {
-                cardImage.onerror = null;
-                cardImage.src = 'assets/placeholder.png';
-            };
+        if (itemImagePath && itemImagePath.trim() !== '' && itemImagePath !== 'NULL') {
+            const cleanPath = itemImagePath.replace(/^\/+/, '');
+            const imgBase = API_BASE_URL.replace(/\/api$/, '');
+            cardImage.src = `${imgBase}/uploads/${cleanPath}`;
+        } else {
+            cardImage.src = 'placeholder/placeholder.png';
+        }
+
+        // Network error/404 error fallback rescue engine
+        cardImage.onerror = () => {
+            cardImage.onerror = null;
+            cardImage.src = 'placeholder/placeholder.png';
+        };
 
         // TITLE
         card.querySelector('.item-card__title').textContent =
@@ -290,7 +293,7 @@ function createItemCard(item) {
             `Description match: <strong>${item.desc_relevance != null ? item.desc_relevance + '%' : 'N/A'}</strong>`;
 
         return card;
-}
+    }
 
 function displayResults(items, resultsContainer) {
     if (!items || items.length === 0) {

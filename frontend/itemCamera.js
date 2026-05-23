@@ -5,31 +5,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const openItemCameraBtn = document.getElementById('openItemCameraBtn');
     const captureItemBtn = document.getElementById('captureItemBtn');
     const cancelItemImageBtn = document.getElementById('cancelItemImageBtn');
-
     const itemCameraFeed = document.getElementById('itemCameraFeed');
     const itemSnapshotCanvas = document.getElementById('itemSnapshotCanvas');
-
     const itemImagePreview = document.getElementById('itemImagePreview');
     const itemPreviewPlaceholder = document.getElementById('itemPreviewPlaceholder');
 
     openItemCameraBtn.addEventListener('click', async () => {
-
         try {
-
             if (typeof userStream !== 'undefined' && userStream) {
-            userStream.getTracks().forEach(track => track.stop());
-            
-                if (typeof userCameraFeed !== 'undefined' && userCameraFeed) {
-                userCameraFeed.srcObject = null;
-                }
+                userStream.getTracks().forEach(track => track.stop());
                 
+                if (typeof userCameraFeed !== 'undefined' && userCameraFeed) {
+                    userCameraFeed.srcObject = null;
+                }
             }
 
             // Stop old ITEM stream
-            if (itemStream) {
-
+            if (typeof itemStream !== 'undefined' && itemStream) {
                 itemStream.getTracks().forEach(track => track.stop());
-
             }
 
             // Open ITEM camera
@@ -39,16 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
             await itemCameraFeed.play();
 
         } catch (error) {
-
-            alert('Item camera access denied or unavailable.');
+            showErrorModal('Unknown Error','Item camera access denied or unavailable.');
             console.error(error);
-
         }
-
     });
 
     captureItemBtn.addEventListener('click', () => {
-
         const context = itemSnapshotCanvas.getContext('2d');
 
         itemSnapshotCanvas.width = itemCameraFeed.videoWidth;
@@ -57,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         context.drawImage(itemCameraFeed, 0, 0, itemSnapshotCanvas.width, itemSnapshotCanvas.height);
 
         itemSnapshotCanvas.toBlob((blob) => {
-
             // Create actual file object
             itemImageFile = new File(
                 [blob],
@@ -74,16 +62,20 @@ document.addEventListener('DOMContentLoaded', () => {
             itemPreviewPlaceholder.style.display = 'none';
 
             // turn off webcam after capture
-            if (itemStream) {
+            if (typeof itemStream !== 'undefined' && itemStream) {
                 itemStream.getTracks().forEach(track => track.stop());
                 itemCameraFeed.srcObject = null;
+            }
+
+            // NEW CHANGE: Force real-time form validation state re-evaluation
+            if (typeof checkFormValidity === 'function') {
+                checkFormValidity();
             }
 
         }, 'image/png');
     });
 
     cancelItemImageBtn.addEventListener('click', () => {
-
         // Remove stored file
         itemImageFile = null;
 
@@ -93,12 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
         itemPreviewPlaceholder.style.display = 'block';
 
         // Stop webcam
-        if (itemStream) {
-
+        if (typeof itemStream !== 'undefined' && itemStream) {
             itemStream.getTracks().forEach(track => track.stop());
             itemCameraFeed.srcObject = null;
-
         }
 
+        // NEW CHANGE: Instantly lock the form back down since the image file is now null
+        if (typeof checkFormValidity === 'function') {
+            checkFormValidity();
+        }
     });
 });

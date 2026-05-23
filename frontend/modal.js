@@ -13,13 +13,27 @@ const Modal = (() => {
         return {};
     }
 
-    function show({ title = '', message = '', node = null, type = 'alert', onConfirm = null, confirmText = 'Close', onClose = null }) {
+    function show({ 
+        title = '', 
+        message = '', 
+        node = null, 
+        type = 'alert', 
+        onConfirm = null, 
+        confirmText = 'Close', 
+        onClose = null,
+        hideFooter = false
+    }) {
 
-        // save the reference down into our module scope variable
         activeCloseCallback = onClose;
 
         titleEl.textContent = title;
         footerEl.innerHTML = '';
+
+        if (hideFooter) {
+            footerEl.style.display = 'none';
+        } else {
+            footerEl.style.display = 'flex';
+        }
 
         if (node) {
             messageEl.innerHTML = '';
@@ -28,32 +42,34 @@ const Modal = (() => {
             messageEl.innerHTML = (message || '').replace(/\n/g, '<br>');
         }
 
-        if (type === 'confirm') {
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'btn-cancel';
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.onclick = hide;
+        if (!hideFooter) {
+            if (type === 'confirm') {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn-cancel';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.onclick = hide;
 
-            const confirmBtn = document.createElement('button');
-            confirmBtn.className = 'btn-confirm';
-            confirmBtn.textContent = 'Yes, Proceed';
-            confirmBtn.disabled = false;
-            confirmBtn.onclick = () => {
-                hide();
-                if (onConfirm) onConfirm();
-            };
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = 'btn-confirm';
+                confirmBtn.textContent = 'Yes, Proceed';
+                confirmBtn.disabled = false;
+                confirmBtn.onclick = () => {
+                    hide();
+                    if (onConfirm) onConfirm();
+                };
 
-            footerEl.append(cancelBtn, confirmBtn);
-        } else {
-            const okBtn = document.createElement('button');
-            okBtn.className = 'btn-confirm';
-            okBtn.textContent = confirmText;
-            okBtn.onclick = () => {
-                hide();
-                if (onConfirm) onConfirm();
-            };
+                footerEl.append(cancelBtn, confirmBtn);
+            } else {
+                const okBtn = document.createElement('button');
+                okBtn.className = 'btn-confirm';
+                okBtn.textContent = confirmText;
+                okBtn.onclick = () => {
+                    hide();
+                    if (onConfirm) onConfirm();
+                };
 
-            footerEl.appendChild(okBtn);
+                footerEl.appendChild(okBtn);
+            }
         }
 
         modal.style.display = 'flex';
@@ -70,4 +86,30 @@ const Modal = (() => {
     }
 
     return { show, hide };
-    })();
+})();
+
+function showErrorModal(titleText, messageText, onCloseCallback = null) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'modal-error-wrapper';
+
+    const icon = document.createElement('div');
+    icon.className = 'modal-error__icon';
+    icon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+
+    const title = document.createElement('h3');
+    title.className = 'modal-error__title';
+    title.textContent = titleText;
+
+    const message = document.createElement('p');
+    message.className = 'modal-error__message';
+    message.textContent = messageText;
+
+    wrapper.append(icon, title, message);
+
+    Modal.show({
+        title: '',                    
+        node: wrapper,                 
+        confirmText: 'Understood',     
+        onClose: onCloseCallback       
+    });
+}
