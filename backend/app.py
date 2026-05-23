@@ -291,7 +291,6 @@ def search_openItems():
             view_name = 'vw_closedFoundItems'
         else:
             view_name = 'vw_closedAllItems'
-
     else:
         if filter_itemType == 'lost':
             view_name = 'vw_openLostItems'
@@ -310,7 +309,7 @@ def search_openItems():
         params = []
         count_params = []
 
-        # filters
+        # Category/Branch Filters
         if category_code:
             base_query += " AND category_code = %s"
             count_query += " AND category_code = %s"
@@ -329,18 +328,15 @@ def search_openItems():
             params.append(location_code)
             count_params.append(location_code)
 
-        # total count (NO LIMIT!)
+        # Total count query remains vanilla for accurate pagination numbers
         cursor.execute(count_query, count_params)
         total = cursor.fetchone()['total']
 
-        # pagination
-        base_query += " LIMIT %s OFFSET %s"
-        params.extend([limit, offset])
-
+        # Execute base query without raw database slice parameters
         cursor.execute(base_query, params)
         items = cursor.fetchall()
-
-        # Apply Levenshtein distance and convert to percentage similarity
+        
+        # 1. Compute Levenshtein similarity across ALL fetched rows matching your filters
         for item in items:
             sim_name = 0
             if name_q:
@@ -363,11 +359,14 @@ def search_openItems():
             if desc_q: relevances.append(sim_desc)
             item['relevance'] = round(max(relevances)) if relevances else 0
             
-        # Sort by relevance (higher percentage is better)
+        # 2. Sort globally so highest percentage matching metrics sit at the very top array indices
         items.sort(key=lambda x: x['relevance'], reverse=True)
         
+        # 3. Apply pagination window slicing right here in Python memory safely
+        paginated_items = items[offset : offset + limit]
+        
         return jsonify({
-            "items": items,
+            "items": paginated_items,
             "total": total,
             "page": page,
             "limit": limit
@@ -484,97 +483,6 @@ def auth_status():
         }), 200
     return jsonify({'is_authenticated': False}), 200
 
-<<<<<<< HEAD
-=======
-@app.route('/api/items', methods=['POST'])
-def report_item():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
-    
-    if not validate_csrf():
-        return jsonify({'error': 'Invalid CSRF token'}), 403
-
-    data = request.form
-
-    name = data.get('name', '').strip()
-    description = data.get('description', '').strip()
-    item_type = data.get('item_type', '').lower().strip()
-    item_image = request.files.get('item_image')
-
-    # Extract date_found parameter from the frontend FormData payload
-    date_found = data.get('date_found')
-    if date_found and date_found.strip() == "":
-        date_found = None
-
-    # Validate required fields
-    if not name:
-        return jsonify({
-            'error': 'Item name is required.'
-        }), 400
-        
-    if not date_found:
-        return jsonify({
-            'error': 'Date and Time Found is required.'
-        }), 400
-
-    # Validate item type
-    if item_type not in ALLOWED_ITEM_TYPES:
-        return jsonify({
-            'error': 'Invalid item type.'
-        }), 400
-
-    # Validate description length
-    if len(description) > MAX_DESCRIPTION_LENGTH:
-        return jsonify({
-            'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
-        }), 400
-    
-    item_file_path = None
-
-    # Save item image
-    if item_image and allowed_file(item_image.filename):
-        ext = item_image.filename.rsplit('.', 1)[1].lower()
-        filename = f"item_{uuid.uuid4().hex}.{ext}"
-        
-        # RELATIVE path (store in DB)
-        item_file_path = f"items/{filename}"
-        
-        # ACTUAL save path
-        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
-        item_image.save(save_path)
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        set_db_user_context(cursor)
-        
-        # Kept procedure arguments perfectly balanced
-        query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        values = (
-            name,
-            description if description else None,
-            item_type,
-            data.get('category_code') if data.get('category_code') else None,
-            data.get('branch_code') if data.get('branch_code') else None,
-            data.get('location_code') if data.get('location_code') else None,
-            item_file_path,
-            date_found  
-        )
-        
-        cursor.execute(query, values)
-        conn.commit()
-        return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
-    except Exception as e:
-        return jsonify({'error': 'Internal Server Error'}), 500
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals() and conn.is_connected():
-            conn.close()
-
->>>>>>> c862e1bf28afa4540ec40305f4351d465cb3db1a
 @app.route('/api/claims', methods=['POST'])
 def process_item_claim():
     # Enforce Authentication Protection
