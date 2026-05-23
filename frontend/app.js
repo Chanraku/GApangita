@@ -27,6 +27,13 @@ window.AppState = AppState;
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
 
+    await checkAuth();
+
+    const currentPage = window.location.pathname.split('/').pop().split('?')[0].split('#')[0];
+    const protectedPages = ['report.html', 'archive.html'];
+
+    if (!window.AppState.isAuthenticated && protectedPages.includes(currentPage)) { return; }
+
     const resultsContainer = document.getElementById('resultsContainer');
 
     if (resultsContainer) {

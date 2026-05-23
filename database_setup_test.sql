@@ -57,8 +57,6 @@ CREATE TABLE IF NOT EXISTS items (
     category_code VARCHAR(15),
     branch_code VARCHAR(15),
     location_code VARCHAR(15),
-    -- reporter_user_code VARCHAR(15), -- REMOVED
-    -- reporter_file_path VARCHAR(255), -- REMOVED
     item_file_path VARCHAR(255),
     date_found DATETIME, -- timestamp the item was found by the reporter
     date_reported DATETIME DEFAULT CURRENT_TIMESTAMP, -- timestamp the item was reported by the reporter
@@ -443,15 +441,25 @@ DROP PROCEDURE IF EXISTS sp_unarchive_item;
 DELIMITER $$
 
 CREATE PROCEDURE sp_unarchive_item (
+<<<<<<< HEAD
     IN p_item_code VARCHAR(15)
 )
 BEGIN
+=======
+    IN p_item_code VARCHAR(15),
+    IN p_reason TEXT
+)
+BEGIN
+    DECLARE v_has_claim INT;
+    
+>>>>>>> c862e1bf28afa4540ec40305f4351d465cb3db1a
     START TRANSACTION;
 
     UPDATE items
     SET STATUS = 'open'
     WHERE item_code = p_item_code;
 
+<<<<<<< HEAD
     INSERT INTO unarchived_items (
         item_code,
         claimer_first_name,
@@ -476,13 +484,65 @@ BEGIN
 
     DELETE FROM claimed_items
     WHERE item_code = p_item_code;
+=======
+    SELECT COUNT(*) INTO v_has_claim 
+    FROM claimed_items 
+    WHERE item_code = p_item_code;
+
+    IF v_has_claim > 0 THEN
+        INSERT INTO unarchived_items (
+            item_code,
+            claimer_first_name,
+            claimer_middle_name,
+            claimer_last_name,
+            contact_number,
+            claimProof_file_path,
+            date_claimed,
+            reason
+        )
+        SELECT
+            item_code,
+            claimer_first_name,
+            claimer_middle_name,
+            claimer_last_name,
+            contact_number,
+            claimProof_file_path,
+            date_claimed,
+            p_reason
+        FROM claimed_items
+        WHERE item_code = p_item_code;
+
+        DELETE FROM claimed_items
+        WHERE item_code = p_item_code;
+    ELSE
+ 
+        INSERT INTO unarchived_items (
+            item_code,
+            claimer_first_name,
+            claimer_last_name,
+            contact_number,
+            reason
+        )
+        VALUES (
+            p_item_code,
+            'SYSTEM',
+            'RESTORE',
+            'N/A',
+            p_reason
+        );
+    END IF;
+>>>>>>> c862e1bf28afa4540ec40305f4351d465cb3db1a
 
     COMMIT;
 END$$
 
+DELIMITER ;
+
 -- Create Functions
 -- 1
-DROP FUNCTION IF EXISTS fn_generate_id$$
+DROP FUNCTION IF EXISTS fn_generate_id;
+
+DELIMITER $$
 
 CREATE FUNCTION fn_generate_id(
     p_table_name VARCHAR(50)
