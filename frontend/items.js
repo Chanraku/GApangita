@@ -13,8 +13,14 @@ function formatDetails(item) {
 }
 
 function buildItemDetails(item, options = {}) {
+    const isUnarchiveHistory = window.location.pathname.includes('unarchiveHistory.html');
+
     if (window.location.pathname.includes('archive.html')) {
         options.isArchivePage = true;
+    }
+    
+    if (isUnarchiveHistory) {
+        options.isUnarchiveHistory = true;
     }
 
     if (options.hideArchiveActions) {
@@ -51,6 +57,19 @@ function buildItemDetails(item, options = {}) {
     const content = document.createElement('div');
     content.className = 'item-modal__content';
 
+    let extraFields = '';
+
+    if (options.isUnarchiveHistory) {
+        extraFields += `
+            <br><br>
+            <p><strong>Claimer's Full Name:</strong><br>${escapeHtml(item.claimer_first_name)} ${escapeHtml(item.claimer_middle_name) || ''}  ${escapeHtml(item.claimer_last_name)}</p><hr>
+            <p><strong>Claimer's Contact Number:</strong><br>${escapeHtml(item.contact_number || 'N/A')}</p><hr>
+            <p><strong>Date Claimed:</strong><br>${formatWithoutTimezone(item.date_claimed || 'N/A')}</p><hr>
+            <p><strong>Date Unarchived:</strong><br>${formatWithoutTimezone(item.date_unarchived)}</p><hr>
+            <p><strong>Reason for Unarchiving:</strong><br>${escapeHtml(item.reason || 'N/A')}</p>
+        `;
+    }
+
     const detailsText = document.createElement('div');
     detailsText.innerHTML = `
         <p><strong>Name:</strong><br> ${escapeHtml(item.name)}</p><hr>
@@ -61,6 +80,7 @@ function buildItemDetails(item, options = {}) {
         <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p><hr>
         <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p><hr>
         <p><strong>Date Reported:</strong><br>${formatWithoutTimezone(item.date_reported)}</p>
+        ${extraFields}
     `;
     content.appendChild(detailsText);
 
@@ -91,7 +111,6 @@ function buildItemDetails(item, options = {}) {
             actions.appendChild(actionBtn);
         }
 
-        // Place Claimant button right underneath/beside the standard option button
         if (options.isArchivePage) {
             const claimantDetailsBtn = document.createElement('button');
             claimantDetailsBtn.type = 'button';
