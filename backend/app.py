@@ -266,11 +266,19 @@ def report_item():
 
 @app.route('/api/search', methods=['GET'])
 def search_openItems():
+    unarchive_page = request.args.get('unarchive_page', '0') == '1'
+
     name_q = request.args.get('name_q', '').strip()
     desc_q = request.args.get('desc_q', '').strip()
     q = request.args.get('q', '').strip()
     filter_itemType = request.args.get('filter', '').lower()
     status = request.args.get('status', 'open').lower()
+    times_unclaimed = request.args.get('times_unclaimed')
+    if times_unclaimed is not None:
+        try:
+            times_unclaimed = int(times_unclaimed)
+        except ValueError:
+            times_unclaimed = None
 
     limit = request.args.get('limit', 15, type=int)
     page = request.args.get('page', 1, type=int)
@@ -280,11 +288,30 @@ def search_openItems():
     branch_code = request.args.get('branch_code', '')
     location_code = request.args.get('location_code', '')
     
-    if (not name_q and not desc_q and not category_code and not branch_code and not location_code):
-        return jsonify({'items': [], 'total': 0, 'page': page, 'limit': limit})
+    if (
+        not unarchive_page and
+        not name_q and
+        not desc_q and
+        not category_code and
+        not branch_code and
+        not location_code
+    ):
+        return jsonify({
+            'items': [],
+            'total': 0,
+            'page': page,
+            'limit': limit
+        })
 
     # Determine correct SQL view
-    if status == 'closed':
+    if unarchive_page:
+        if filter_itemType == 'lost':
+            view_name = 'vw_archivedLost'
+        elif filter_itemType == 'found':
+            view_name = 'vw_archivedFound'
+        else:
+            view_name = 'vw_archivedAll'
+    elif status == 'closed':
         if filter_itemType == 'lost':
             view_name = 'vw_closedLostItems'
         elif filter_itemType == 'found':
@@ -573,7 +600,6 @@ def get_item_claim_details(item_code):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Simple directional lookup target filtering by item_code keys
         query = "SELECT * FROM claimed_items WHERE item_code = %s"
         cursor.execute(query, (item_code,))
         claim_record = cursor.fetchone()
@@ -591,9 +617,56 @@ def get_item_claim_details(item_code):
         if conn and conn.is_connected():
             conn.close()
 
+# GET endpoint for unarchived item details
+@app.route('/api/unarchived/<item_code>', methods=['GET', 'OPTIONS'])
+def get_unarchive_details(item_code):
+
+    # Handle browser preflight
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'CORS preflight ok'}), 200
+
+    # Authentication protection
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized view request.'}), 401
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT *
+            FROM unarchived_items
+            WHERE item_code = %s
+        """
+
+        cursor.execute(query, (item_code,))
+        unarchive_record = cursor.fetchone()
+
+        if not unarchive_record:
+            return jsonify({
+                'error': 'No matching unarchive records found.'
+            }), 404
+
+        return jsonify(unarchive_record), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': f'Server pipeline tracking crash: {str(e)}'
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conn and conn.is_connected():
+            conn.close()
+
 @app.route('/api/items/unarchive', methods=['POST'])
 def unarchive_item():
-    # Enforce Authentication & CSRF Controls
+    
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized view request.'}), 401
     if not validate_csrf():
@@ -603,7 +676,6 @@ def unarchive_item():
     item_code = data.get('item_code', '').strip()
     reason = data.get('reason', '').strip()
 
-    # Validate business rules matching your textarea minimum constraints
     if not item_code or len(reason) < 8:
         return jsonify({'error': 'A valid item code and a minimum text reason of 8 characters are required.'}), 400
 
@@ -614,7 +686,6 @@ def unarchive_item():
         cursor = conn.cursor()
         set_db_user_context(cursor)
 
-        # Fire your newly optimized multi-parameter stored procedure
         query = "CALL sp_unarchive_item(%s, %s)"
         cursor.execute(query, (item_code, reason))
         conn.commit()

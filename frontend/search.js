@@ -2,6 +2,7 @@
 function initSearchAndFilters() {
 
     const isArchivePage = window.location.pathname.includes('archive.html');
+    const isUnarchivePage = window.location.pathname.includes('unarchiveHistory.html');
 
     const searchInput = document.getElementById('searchInput');
     const searchDescInput = document.getElementById('searchDescInput');
@@ -168,6 +169,7 @@ function initSearchAndFilters() {
             if (branch) params.append('branch_code', branch);
             if (location) params.append('location_code', location);
             if (isArchivePage) { params.append('status', 'closed'); }
+            if (isUnarchivePage) { params.append('unarchive_page', '1');}
             params.append('limit', AppState.pageSize);
             params.append('page', AppState.currentPage);
 

@@ -14,19 +14,22 @@ function checkFormValidity() {
     const dateVal = document.getElementById('dateFound').value;
 
     // Verify all required textual inputs are filled out completely
-    const allFieldsFilled = nameVal.length > 0 && 
-                             typeVal !== "" && 
-                             categoryVal !== "" && 
-                             branchVal !== "" && 
-                             locationVal !== "" && 
-                             descVal.length > 0 && 
-                             dateVal !== "";
-                             
+    const allFieldsFilled = nameVal.length > 0 &&
+                            typeVal !== "" &&
+                            categoryVal !== "" &&
+                            branchVal !== "" &&
+                            locationVal !== "" &&
+                            descVal.length > 0 &&
+                            dateVal !== "";
+                            
     // Check if the camera global variable contains a valid file object package
     const hasPhoto = typeof itemImageFile !== 'undefined' && itemImageFile !== null;
 
     // Toggle disabled constraint mapping parameters instantly
-    submitBtn.disabled = !(allFieldsFilled && hasPhoto);
+    if (typeVal == 'lost')
+        submitBtn.disabled = !(allFieldsFilled);
+    else
+        submitBtn.disabled = !(allFieldsFilled && hasPhoto);
 }
 
 const reportForm = document.getElementById('reportForm');

@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
 
     const currentPage = window.location.pathname.split('/').pop().split('?')[0].split('#')[0];
-    const protectedPages = ['report.html', 'archive.html'];
+    const protectedPages = ['report.html', 'archive.html', 'unarchiveHistory.html'];
 
     if (!window.AppState.isAuthenticated && protectedPages.includes(currentPage)) { return; }
 
@@ -42,7 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const card = e.target.closest('.item-card');
                 if (!card) return;
                 const item = JSON.parse(decodeURIComponent(card.dataset.item));
-                const isArchivePage = window.location.pathname.includes('archive');
+                const isArchivePage = window.location.pathname.includes('archive.html');
+                const isUnarchivePage = window.location.pathname.includes('unarchiveHistory.html');
 
                 if (isArchivePage) {
                     showItemDetails(item, {
@@ -53,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     });
                 } else {
-
                     showItemDetails(item, {
                         actionButton: {
                             text: 'Claim Item',

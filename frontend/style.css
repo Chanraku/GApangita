@@ -125,6 +125,20 @@ body {
   gap: 1.5rem;
 }
 
+.archive_link {
+  text-decoration: none;
+  color: #000000;
+  text-align: left;
+  margin-bottom: .5rem;
+}
+
+.unarchive_link {
+  text-decoration: none;
+  color: #000000;
+  text-align: right;
+  margin-bottom: .5rem;
+}
+
 .navbar__user {
   display: flex;
   align-items: center;

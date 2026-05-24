@@ -298,8 +298,8 @@ function checkFormValidity() {
         const phoneFieldValid = contactVal.length === 11;
         
         const hasPhoto = imagePreview.src && 
-                         imagePreview.style.display !== 'none' && 
-                         !imagePreview.src.endsWith('placeholder.png');
+                        imagePreview.style.display !== 'none' &&
+                        !imagePreview.src.endsWith('placeholder.png');
 
         claimConfirmBtn.disabled = !(textFieldsValid && phoneFieldValid && hasPhoto);
     }
