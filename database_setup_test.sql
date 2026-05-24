@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS items (
     date_found DATETIME, -- timestamp the item was found by the reporter
     date_reported DATETIME DEFAULT CURRENT_TIMESTAMP, -- timestamp the item was reported by the reporter
     close_at DATETIME,
+    times_unclaimed INT DEFAULT 0,
     FOREIGN KEY (category_code) REFERENCES categories(category_code) ON DELETE SET NULL,
     FOREIGN KEY (branch_code) REFERENCES branches(branch_code) ON DELETE SET NULL,
     FOREIGN KEY (location_code) REFERENCES locations(location_code) ON DELETE SET NULL
@@ -325,31 +326,154 @@ WHERE STATUS = 'closed' AND item_type = 'found';
 -- SELECT * FROM vw_closedFoundItems;
 
 -- 7
+DROP VIEW IF EXISTS vw_archivedLost;
+CREATE VIEW vw_archivedLost AS
+SELECT
+	un.unarchived_item_id,
+	un.unarchived_item_code,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.category_code,
+	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	l.description AS `locationDescription`,
+	i.item_file_path,
+	i.date_found,
+	i.date_reported,
+	un.claimer_first_name,
+	un.claimer_middle_name,
+	un.claimer_last_name,
+	un.contact_number,
+	un.claimProof_file_path,
+	un.date_claimed,
+	un.date_unarchived,
+	un.reason
+FROM unarchived_items AS un
+LEFT JOIN items AS i
+	ON i.item_code = un.item_code	
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+WHERE i.item_type = 'lost' AND i.times_unclaimed > 0;
+-- SELECT * FROM vw_archivedLost;
+
+-- 8
+DROP VIEW IF EXISTS vw_archivedFound;
+CREATE VIEW vw_archivedFound AS
+SELECT
+	un.unarchived_item_id,
+	un.unarchived_item_code,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.category_code,
+	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	l.description AS `locationDescription`,
+	i.item_file_path,
+	i.date_found,
+	i.date_reported,
+	un.claimer_first_name,
+	un.claimer_middle_name,
+	un.claimer_last_name,
+	un.contact_number,
+	un.claimProof_file_path,
+	un.date_claimed,
+	un.date_unarchived,
+	un.reason
+FROM unarchived_items AS un
+LEFT JOIN items AS i
+	ON i.item_code = un.item_code	
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+WHERE i.item_type = 'found' AND i.times_unclaimed > 0;
+-- SELECT * FROM vw_archivedFound;
+
+-- 9
+DROP VIEW IF EXISTS vw_archivedAll;
+CREATE VIEW vw_archivedAll AS
+SELECT
+	un.unarchived_item_id,
+	un.unarchived_item_code,
+	i.item_code,
+	i.NAME AS `name`,
+	i.DESCRIPTION AS `description`,
+	i.item_type,
+	i.category_code,
+	c.name AS `categoryName`,
+	c.description AS `categoryDescription`,
+	i.branch_code,
+	b.name AS `branchName`,
+	i.location_code,
+	l.name AS `locationName`,
+	l.description AS `locationDescription`,
+	i.item_file_path,
+	i.date_found,
+	i.date_reported,
+	un.claimer_first_name,
+	un.claimer_middle_name,
+	un.claimer_last_name,
+	un.contact_number,
+	un.claimProof_file_path,
+	un.date_claimed,
+	un.date_unarchived,
+	un.reason
+FROM unarchived_items AS un
+LEFT JOIN items AS i
+	ON i.item_code = un.item_code	
+LEFT JOIN categories AS c
+	ON i.category_code = c.category_code
+LEFT JOIN branches AS b
+	ON i.branch_code = b.branch_code
+LEFT JOIN locations AS l
+	ON i.location_code = l.location_code
+WHERE i.times_unclaimed > 0;
+-- SELECT * FROM vw_archivedAll;
+
+-- 10
 DROP VIEW IF EXISTS vw_categories;
 CREATE VIEW vw_categories AS
 SELECT category_code, NAME FROM categories ORDER BY NAME;
 -- SELECT * FROM vw_categories;
 
--- 8
+-- 11
 DROP VIEW IF EXISTS vw_branches;
 CREATE VIEW vw_branches AS
 SELECT branch_code, NAME FROM branches ORDER BY NAME;
 -- SELECT * FROM vw_branches;
 
--- 9
+-- 12
 DROP VIEW IF EXISTS vw_locations;
 CREATE VIEW vw_locations AS
 SELECT location_code, NAME FROM locations ORDER BY NAME;
 -- SELECT * FROM vw_locations;
 
--- 10
+-- 13
 DROP VIEW IF EXISTS vw_userLogin;
 CREATE VIEW vw_userLogin AS
 SELECT user_id, user_code, user_role, username, PASSWORD
 FROM users;
 -- SELECT * FROM vw_userLogin;
 
--- 11
+-- 14
 DROP VIEW IF EXISTS vw_branchLocations;
 CREATE VIEW vw_branchLocations AS
 SELECT bl.branch_code AS `branch_code`, l.location_code, l.NAME AS `NAME`
@@ -451,6 +575,10 @@ BEGIN
 
     UPDATE items
     SET STATUS = 'open'
+    WHERE item_code = p_item_code;    
+
+    UPDATE items
+    SET times_unclaimed = COALESCE(times_unclaimed, 0) + 1
     WHERE item_code = p_item_code;
 
     SELECT COUNT(*) INTO v_has_claim 

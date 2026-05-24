@@ -176,13 +176,109 @@ def get_locations_by_branch(branch_code):
         cursor.close()
         conn.close()
 
+@app.route('/api/items', methods=['POST'])
+def report_item():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
+    
+    if not validate_csrf():
+        return jsonify({'error': 'Invalid CSRF token'}), 403
+
+    data = request.form
+
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    item_type = data.get('item_type', '').lower().strip()
+    item_image = request.files.get('item_image')
+
+    # Extract date_found parameter from the frontend FormData payload
+    date_found = data.get('date_found')
+    if date_found and date_found.strip() == "":
+        date_found = None
+
+    # Validate required fields (Enforcing that Date Found must be filled out)
+    if not name:
+        return jsonify({
+            'error': 'Item name is required.'
+        }), 400
+        
+    if not date_found:
+        return jsonify({
+            'error': 'Date and Time Found is required.'
+        }), 400
+
+    # Validate item type
+    if item_type not in ALLOWED_ITEM_TYPES:
+        return jsonify({
+            'error': 'Invalid item type.'
+        }), 400
+
+    # Validate description length
+    if len(description) > MAX_DESCRIPTION_LENGTH:
+        return jsonify({
+            'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
+        }), 400
+    
+    item_file_path = None
+
+    # Save item image
+    if item_image and allowed_file(item_image.filename):
+        ext = item_image.filename.rsplit('.', 1)[1].lower()
+        filename = f"item_{uuid.uuid4().hex}.{ext}"
+        
+        # RELATIVE path (store in DB)
+        item_file_path = f"items/{filename}"
+        
+        # ACTUAL save path
+        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
+        item_image.save(save_path)
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        set_db_user_context(cursor)
+
+        # Kept the same query footprint to honor the MySQL procedure blueprint setup without crashing parameter count validations
+        query = """
+            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        values = (
+            name,
+            description if description else None,
+            item_type,
+            data.get('category_code') if data.get('category_code') else None,
+            data.get('branch_code') if data.get('branch_code') else None,
+            data.get('location_code') if data.get('location_code') else None,
+            item_file_path,
+            date_found
+        )
+        
+        cursor.execute(query, values)
+        conn.commit()
+        return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
+
 @app.route('/api/search', methods=['GET'])
 def search_openItems():
+    unarchive_page = request.args.get('unarchive_page', '0') == '1'
+
     name_q = request.args.get('name_q', '').strip()
     desc_q = request.args.get('desc_q', '').strip()
     q = request.args.get('q', '').strip()
     filter_itemType = request.args.get('filter', '').lower()
     status = request.args.get('status', 'open').lower()
+    times_unclaimed = request.args.get('times_unclaimed')
+    if times_unclaimed is not None:
+        try:
+            times_unclaimed = int(times_unclaimed)
+        except ValueError:
+            times_unclaimed = None
 
     limit = request.args.get('limit', 15, type=int)
     page = request.args.get('page', 1, type=int)
@@ -192,11 +288,30 @@ def search_openItems():
     branch_code = request.args.get('branch_code', '')
     location_code = request.args.get('location_code', '')
     
-    if (not name_q and not desc_q and not category_code and not branch_code and not location_code):
-        return jsonify({'items': [], 'total': 0, 'page': page, 'limit': limit})
+    if (
+        not unarchive_page and
+        not name_q and
+        not desc_q and
+        not category_code and
+        not branch_code and
+        not location_code
+    ):
+        return jsonify({
+            'items': [],
+            'total': 0,
+            'page': page,
+            'limit': limit
+        })
 
     # Determine correct SQL view
-    if status == 'closed':
+    if unarchive_page:
+        if filter_itemType == 'lost':
+            view_name = 'vw_archivedLost'
+        elif filter_itemType == 'found':
+            view_name = 'vw_archivedFound'
+        else:
+            view_name = 'vw_archivedAll'
+    elif status == 'closed':
         if filter_itemType == 'lost':
             view_name = 'vw_closedLostItems'
         elif filter_itemType == 'found':
@@ -395,99 +510,13 @@ def auth_status():
         }), 200
     return jsonify({'is_authenticated': False}), 200
 
-@app.route('/api/items', methods=['POST'])
-def report_item():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized. Please log in.'}), 401
-    
-    if not validate_csrf():
-        return jsonify({'error': 'Invalid CSRF token'}), 403
-
-    data = request.form
-
-    name = data.get('name', '').strip()
-    description = data.get('description', '').strip()
-    item_type = data.get('item_type', '').lower().strip()
-    item_image = request.files.get('item_image')
-
-    # Extract date_found parameter from the frontend FormData payload
-    date_found = data.get('date_found')
-    if date_found and date_found.strip() == "":
-        date_found = None
-
-    # Validate required fields
-    if not name:
-        return jsonify({
-            'error': 'Item name is required.'
-        }), 400
-        
-    if not date_found:
-        return jsonify({
-            'error': 'Date and Time Found is required.'
-        }), 400
-
-    # Validate item type
-    if item_type not in ALLOWED_ITEM_TYPES:
-        return jsonify({
-            'error': 'Invalid item type.'
-        }), 400
-
-    # Validate description length
-    if len(description) > MAX_DESCRIPTION_LENGTH:
-        return jsonify({
-            'error': f'Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters.'
-        }), 400
-    
-    item_file_path = None
-
-    # Save item image
-    if item_image and allowed_file(item_image.filename):
-        ext = item_image.filename.rsplit('.', 1)[1].lower()
-        filename = f"item_{uuid.uuid4().hex}.{ext}"
-        
-        # RELATIVE path (store in DB)
-        item_file_path = f"items/{filename}"
-        
-        # ACTUAL save path
-        save_path = os.path.join(UPLOAD_FOLDER, item_file_path)
-        item_image.save(save_path)
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        set_db_user_context(cursor)
-        
-        # Kept procedure arguments perfectly balanced
-        query = """
-            CALL sp_submit_report(%s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        values = (
-            name,
-            description if description else None,
-            item_type,
-            data.get('category_code') if data.get('category_code') else None,
-            data.get('branch_code') if data.get('branch_code') else None,
-            data.get('location_code') if data.get('location_code') else None,
-            item_file_path,
-            date_found  
-        )
-        
-        cursor.execute(query, values)
-        conn.commit()
-        return jsonify({'message': 'Item reported successfully', 'id': cursor.lastrowid}), 201
-    except Exception as e:
-        return jsonify({'error': 'Internal Server Error'}), 500
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals() and conn.is_connected():
-            conn.close()
-
 @app.route('/api/claims', methods=['POST'])
 def process_item_claim():
+    # Enforce Authentication Protection
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized. Please log in to process claims.'}), 401
     
+    # Enforce CSRF Protection
     if not validate_csrf():
          return jsonify({'error': 'Invalid CSRF token'}), 403
     
@@ -499,27 +528,33 @@ def process_item_claim():
     contact_number = data.get('contact_number', '').strip()
     claim_image = request.files.get('claimProof')
 
+    # Server-Side Validation Check
     if not item_code or not first_name or not last_name or not contact_number:
         return jsonify({'error': 'Missing required claim details.'}), 400
 
     if not claim_image or not allowed_file(claim_image.filename):
         return jsonify({'error': 'A valid image snapshot file is required.'}), 400
 
+    # Process image saving into your clean path formatting structure
     ext = claim_image.filename.rsplit('.', 1)[1].lower()
     unique_filename = f"claim_{uuid.uuid4().hex}.{ext}"
     
+    # Store just 'claimant/filename.jpg' inside your table row
     db_relative_path = f"claimant/{unique_filename}"
     actual_save_path = os.path.join(UPLOAD_FOLDER, db_relative_path)
     claim_image.save(actual_save_path)
 
+    # 4. Handle Database Transactions
     conn = None
     cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Enable your audit tracking log setup context if your database relies on it
         set_db_user_context(cursor)
 
+        # Action Step A: Write data down to your claimed_items log table
         query = """
             CALL sp_insert_into_claimed_items(%s, %s, %s, %s, %s, %s)
         """
@@ -532,10 +567,12 @@ def process_item_claim():
             db_relative_path
         )
         cursor.execute(query, values)
+        # Commit everything to database storage safely
         conn.commit()
         return jsonify({'message': 'Claim successfully updated via stored procedure.'}), 201
 
     except Exception as e:
+        # If anything fails, rollback database alterations instantly to protect data integrity
         if conn:
             conn.rollback()
         return jsonify({'message': 'Internal Server Error'}), 500
@@ -546,11 +583,14 @@ def process_item_claim():
         if conn and conn.is_connected():
             conn.close()
 
+# This GET endpoint allows clients to retrieve claim details for a specific item code
 @app.route('/api/claims/<item_code>', methods=['GET', 'OPTIONS'])
 def get_item_claim_details(item_code):
+    # Handle the browser preflight request instantly
     if request.method == 'OPTIONS':
         return jsonify({'status': 'CORS preflight ok'}), 200
 
+    # Enforce standard session authorization checks
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized view request.'}), 401
 
@@ -577,9 +617,56 @@ def get_item_claim_details(item_code):
         if conn and conn.is_connected():
             conn.close()
 
+# GET endpoint for unarchived item details
+@app.route('/api/unarchived/<item_code>', methods=['GET', 'OPTIONS'])
+def get_unarchive_details(item_code):
+
+    # Handle browser preflight
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'CORS preflight ok'}), 200
+
+    # Authentication protection
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized view request.'}), 401
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+            SELECT *
+            FROM unarchived_items
+            WHERE item_code = %s
+        """
+
+        cursor.execute(query, (item_code,))
+        unarchive_record = cursor.fetchone()
+
+        if not unarchive_record:
+            return jsonify({
+                'error': 'No matching unarchive records found.'
+            }), 404
+
+        return jsonify(unarchive_record), 200
+
+    except Exception as e:
+        return jsonify({
+            'error': f'Server pipeline tracking crash: {str(e)}'
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conn and conn.is_connected():
+            conn.close()
+
 @app.route('/api/items/unarchive', methods=['POST'])
 def unarchive_item():
-    # Enforce Authentication & CSRF Controls
+    
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized view request.'}), 401
     if not validate_csrf():
@@ -589,7 +676,6 @@ def unarchive_item():
     item_code = data.get('item_code', '').strip()
     reason = data.get('reason', '').strip()
 
-    # Validate business rules matching your textarea minimum constraints
     if not item_code or len(reason) < 8:
         return jsonify({'error': 'A valid item code and a minimum text reason of 8 characters are required.'}), 400
 
@@ -600,7 +686,6 @@ def unarchive_item():
         cursor = conn.cursor()
         set_db_user_context(cursor)
 
-        # Fire your newly optimized multi-parameter stored procedure
         query = "CALL sp_unarchive_item(%s, %s)"
         cursor.execute(query, (item_code, reason))
         conn.commit()

@@ -13,8 +13,14 @@ function formatDetails(item) {
 }
 
 function buildItemDetails(item, options = {}) {
+    const isUnarchiveHistory = window.location.pathname.includes('unarchiveHistory.html');
+
     if (window.location.pathname.includes('archive.html')) {
         options.isArchivePage = true;
+    }
+    
+    if (isUnarchiveHistory) {
+        options.isUnarchiveHistory = true;
     }
 
     if (options.hideArchiveActions) {
@@ -51,6 +57,19 @@ function buildItemDetails(item, options = {}) {
     const content = document.createElement('div');
     content.className = 'item-modal__content';
 
+    let extraFields = '';
+
+    if (options.isUnarchiveHistory) {
+        extraFields += `
+            <br><br>
+            <p><strong>Claimer's Full Name:</strong><br>${escapeHtml(item.claimer_first_name)} ${escapeHtml(item.claimer_middle_name) || ''}  ${escapeHtml(item.claimer_last_name)}</p><hr>
+            <p><strong>Claimer's Contact Number:</strong><br>${escapeHtml(item.contact_number || 'N/A')}</p><hr>
+            <p><strong>Date Claimed:</strong><br>${formatWithoutTimezone(item.date_claimed || 'N/A')}</p><hr>
+            <p><strong>Date Unarchived:</strong><br>${formatWithoutTimezone(item.date_unarchived)}</p><hr>
+            <p><strong>Reason for Unarchiving:</strong><br>${escapeHtml(item.reason || 'N/A')}</p>
+        `;
+    }
+
     const detailsText = document.createElement('div');
     detailsText.innerHTML = `
         <p><strong>Name:</strong><br> ${escapeHtml(item.name)}</p><hr>
@@ -61,6 +80,7 @@ function buildItemDetails(item, options = {}) {
         <p><strong>Description:</strong><br>${escapeHtml(item.description || 'No description provided.')}</p><hr>
         <p><strong>Date Found:</strong><br>${formatWithoutTimezone(item.date_found)}</p><hr>
         <p><strong>Date Reported:</strong><br>${formatWithoutTimezone(item.date_reported)}</p>
+        ${extraFields}
     `;
     content.appendChild(detailsText);
 
@@ -77,21 +97,23 @@ function buildItemDetails(item, options = {}) {
         actions.style.marginTop = '15px';
 
         // Add standard action button if passed down (e.g., Restore Item)
-        if (options.actionButton) {
-            const actionBtn = document.createElement('button');
-            actionBtn.type = 'button';
-            actionBtn.textContent = options.actionButton.text || 'Action';
-            actionBtn.className = options.actionButton.className || 'btn btn-primary';
-            actionBtn.style.width = '100%';
-            actionBtn.addEventListener('click', () => {
-                if (options.actionButton.onClick) {
-                    options.actionButton.onClick(item, options);
-                }
-            });
-            actions.appendChild(actionBtn);
+        if (!isUnarchiveHistory) {
+            if (options.actionButton) {
+                const actionBtn = document.createElement('button');
+                actionBtn.type = 'button';
+                actionBtn.textContent = options.actionButton.text || 'Action';
+                actionBtn.className = options.actionButton.className || 'btn btn-primary';
+                actionBtn.style.width = '100%';
+                actionBtn.addEventListener('click', () => {
+                    if (options.actionButton.onClick) {
+                        options.actionButton.onClick(item, options);
+                    }
+                });
+                actions.appendChild(actionBtn);
+            }
         }
+        
 
-        // Place Claimant button right underneath/beside the standard option button
         if (options.isArchivePage) {
             const claimantDetailsBtn = document.createElement('button');
             claimantDetailsBtn.type = 'button';
@@ -100,7 +122,7 @@ function buildItemDetails(item, options = {}) {
             claimantDetailsBtn.style.width = '100%';
             
             claimantDetailsBtn.addEventListener('click', () => {
-                Modal.hide(); 
+                Modal.hide();
                 setTimeout(() => {
                     openClaimantDetailsModal(item, options); 
                 }, 50);
@@ -128,6 +150,7 @@ function showItemDetails(item, options = {}) {
 // Claim Item Modal
 function openClaimModal(item) {
 
+    const isUnarchiveHistory = window.location.pathname.includes('unarchiveHistory.html');
     const wrapper = document.createElement('div');
     wrapper.className = 'claim-modal';
 
@@ -141,7 +164,7 @@ function openClaimModal(item) {
         Modal.hide();
         setTimeout(() => {
             showItemDetails(item, {
-                actionButton: {
+                actionButton: isUnarchiveHistory ? null : {
                     text: 'Claim Item',
                     className: 'btn btn-primary',
                     onClick: openClaimModal
@@ -298,8 +321,8 @@ function checkFormValidity() {
         const phoneFieldValid = contactVal.length === 11;
         
         const hasPhoto = imagePreview.src && 
-                         imagePreview.style.display !== 'none' && 
-                         !imagePreview.src.endsWith('placeholder.png');
+                        imagePreview.style.display !== 'none' &&
+                        !imagePreview.src.endsWith('placeholder.png');
 
         claimConfirmBtn.disabled = !(textFieldsValid && phoneFieldValid && hasPhoto);
     }
