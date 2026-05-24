@@ -1096,15 +1096,16 @@ button[type="submit"] {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    max-width: 600px;
 }
 
 .claim-camera-feed {
     width: 100%;
-    max-width: 400px;
-    border-radius: 12px;
-    display: block;
-    margin: 15px auto;
     max-width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover; /* or contain if you don’t want cropping */
+    border-radius: 8px;
 }
 
 .claim-preview-container {
