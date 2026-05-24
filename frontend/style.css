@@ -46,7 +46,7 @@ body {
 .hero h1 {
   font-weight: 1000;
   font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-family:Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-family: 'Arial Narrow Bold', sans-serif;
   color: #2e1010;
   line-height: 1.2;
 }
