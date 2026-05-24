@@ -97,19 +97,22 @@ function buildItemDetails(item, options = {}) {
         actions.style.marginTop = '15px';
 
         // Add standard action button if passed down (e.g., Restore Item)
-        if (options.actionButton) {
-            const actionBtn = document.createElement('button');
-            actionBtn.type = 'button';
-            actionBtn.textContent = options.actionButton.text || 'Action';
-            actionBtn.className = options.actionButton.className || 'btn btn-primary';
-            actionBtn.style.width = '100%';
-            actionBtn.addEventListener('click', () => {
-                if (options.actionButton.onClick) {
-                    options.actionButton.onClick(item, options);
-                }
-            });
-            actions.appendChild(actionBtn);
+        if (!isUnarchiveHistory) {
+            if (options.actionButton) {
+                const actionBtn = document.createElement('button');
+                actionBtn.type = 'button';
+                actionBtn.textContent = options.actionButton.text || 'Action';
+                actionBtn.className = options.actionButton.className || 'btn btn-primary';
+                actionBtn.style.width = '100%';
+                actionBtn.addEventListener('click', () => {
+                    if (options.actionButton.onClick) {
+                        options.actionButton.onClick(item, options);
+                    }
+                });
+                actions.appendChild(actionBtn);
+            }
         }
+        
 
         if (options.isArchivePage) {
             const claimantDetailsBtn = document.createElement('button');
@@ -119,7 +122,7 @@ function buildItemDetails(item, options = {}) {
             claimantDetailsBtn.style.width = '100%';
             
             claimantDetailsBtn.addEventListener('click', () => {
-                Modal.hide(); 
+                Modal.hide();
                 setTimeout(() => {
                     openClaimantDetailsModal(item, options); 
                 }, 50);
@@ -147,6 +150,7 @@ function showItemDetails(item, options = {}) {
 // Claim Item Modal
 function openClaimModal(item) {
 
+    const isUnarchiveHistory = window.location.pathname.includes('unarchiveHistory.html');
     const wrapper = document.createElement('div');
     wrapper.className = 'claim-modal';
 
@@ -160,7 +164,7 @@ function openClaimModal(item) {
         Modal.hide();
         setTimeout(() => {
             showItemDetails(item, {
-                actionButton: {
+                actionButton: isUnarchiveHistory ? null : {
                     text: 'Claim Item',
                     className: 'btn btn-primary',
                     onClick: openClaimModal
